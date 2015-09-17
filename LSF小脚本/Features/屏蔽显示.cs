@@ -207,6 +207,7 @@ namespace LSF小脚本.Features {
 			StreamMenu = new Menu("屏蔽显示","屏蔽显示");
 			StreamMenu.Add(new MenuBool("屏蔽发话", "禁止脚本发话", true));
 			StreamMenu.Add(new MenuKeyBind("屏蔽显示", "屏蔽L#的显示", Keys.Home,KeyBindType.Toggle));
+			StreamMenu.Add(new MenuKeyBind("按下显示", "屏蔽时按下可显示L#内容", Keys.Shift, KeyBindType.Press));
 			StreamMenu.Add(new MenuBool("死亡屏蔽显示", "死亡屏蔽显示"));
 			StreamMenu.Add(new MenuBool("模拟点击","屏蔽时也模拟点击",true));
 			StreamMenu.Add(new MenuList<string>("模拟方式", "模拟方式",new string[] {"模拟躲避，不模拟走砍", "模拟走砍，不模拟躲避" }));
@@ -232,7 +233,11 @@ namespace LSF小脚本.Features {
 			if (StreamMenu["屏蔽显示"].GetValue<MenuKeyBind>().Active 
 				||(StreamMenu["死亡屏蔽显示"].GetValue<MenuBool>().Value && Player.IsDead) )
 			{
-				Hacks.DisableDrawings = true;
+				if (!StreamMenu["按下显示"].GetValue<MenuKeyBind>().Active)
+				{
+					Hacks.DisableDrawings = true;
+				}
+				
 			}
 			else
 			{
