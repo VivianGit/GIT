@@ -61,9 +61,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\Jungle.cs" />
+    <Compile Include="Features\检测外挂\LeaguesharpOrbwalkDetector.cs" />
+    <Compile Include="Features\检测外挂\SacOrbwalkerDetector.cs" />
+    <Compile Include="Features\塔防范围.cs" />
     <Compile Include="Features\屏蔽显示.cs" />
     <Compile Include="Features\打野计时.cs" />
     <Compile Include="Features\显示时间.cs" />
+    <Compile Include="Features\检测外挂.cs" />
+    <Compile Include="Interface\IDetector.cs" />
     <Compile Include="library\Convert.cs" />
     <Compile Include="library\GameObjects.cs" />
     <Compile Include="library\Utills.cs" />
@@ -73,6 +78,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
