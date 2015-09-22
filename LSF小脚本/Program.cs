@@ -29,9 +29,11 @@ namespace LSF小脚本 {
 			new Features.打野计时();
 			new Features.显示时间();
 			new Features.屏蔽显示();
+			//new Features.塔防范围();
+			new Features.检测外挂();
 			Config.Attach();
 			
-			var startNotifi = new Notification("L#资源网小工具", "Http://lsharp.xyz\n我们将持续更新相关内容");
+			var startNotifi = new Notification("L#资源网小工具", "Http://lsharp.xyz\n我们将持续更新相关内容\n打野计时 载入");
 			startNotifi.Icon = NotificationIconType.Check;
 			startNotifi.IsOpen = true;
 			startNotifi.IconFlash = true;

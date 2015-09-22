@@ -24,8 +24,12 @@ using LeagueSharp.SDK.Core.Extensions.SharpDX;
 namespace LSF小脚本.Features {
 	class 屏蔽显示 {
 
+		
 		static Menu StreamMenu;
+		static MenuKeyBind DisalbeDrawMenu;
+		static bool DisableDrawings;
 		Obj_AI_Hero Player = ObjectManager.Player;
+		static int Kills = 0;
 		/// <summary>
 		/// If the user is attacking
 		/// Currently used for the second style of fake clicks
@@ -71,6 +75,8 @@ namespace LSF小脚本.Features {
 		/// The Random number generator
 		/// </summary>
 		private static Random r = new Random();
+
+		
 
 		/// <summary>
 		/// The move fake click after attacking
@@ -202,15 +208,16 @@ namespace LSF小脚本.Features {
 			}
 		}
 
-
 		public 屏蔽显示() {
-			StreamMenu = new Menu("屏蔽显示","屏蔽显示");
-			StreamMenu.Add(new MenuBool("屏蔽发话", "禁止脚本发话", true));
-			StreamMenu.Add(new MenuKeyBind("屏蔽显示", "屏蔽L#的显示", Keys.Home,KeyBindType.Toggle));
+			StreamMenu = new Menu("屏蔽显示", "屏蔽显示");
+			StreamMenu.Add(new MenuBool("屏蔽发话", "禁止脚本发话"));
+			StreamMenu.Add(new MenuKeyBind("屏蔽显示", "屏蔽L#的显示", Keys.Home, KeyBindType.Toggle));
 			StreamMenu.Add(new MenuKeyBind("按下显示", "屏蔽时按下可显示L#内容", Keys.Shift, KeyBindType.Press));
 			StreamMenu.Add(new MenuBool("死亡屏蔽显示", "死亡屏蔽显示"));
-			StreamMenu.Add(new MenuBool("模拟点击","屏蔽时也模拟点击",true));
-			StreamMenu.Add(new MenuList<string>("模拟方式", "模拟方式",new string[] {"模拟躲避，不模拟走砍", "模拟走砍，不模拟躲避" }));
+			StreamMenu.Add(new MenuSlider("已连杀人数", "已连杀人数", 0, 0, 8));
+			StreamMenu.Add(new MenuBool("超神屏蔽显示", "超神屏蔽显示", true));
+			StreamMenu.Add(new MenuBool("多杀屏蔽显示", "多杀屏蔽显示", true));
+			StreamMenu.Add(new MenuSlider("多杀屏蔽时间", "多杀屏蔽时间", 4, 0, 10));
 			Program.Config.Add(StreamMenu);
 
 			Game.OnUpdate += OnUpdate;
@@ -218,10 +225,15 @@ namespace LSF小脚本.Features {
 			Orbwalker.OnAction += Orbwalker_OnAction;
 			Spellbook.OnCastSpell += BeforeSpellCast;
 			Obj_AI_Base.OnIssueOrder += OnIssueOrder;
+			Game.OnNotify += Game_OnNotify;
 
-		}
+			StreamMenu["屏蔽显示"].GetValue<MenuKeyBind>().ValueChanged += 屏蔽显示_ValueChanged;
+			StreamMenu["按下显示"].GetValue<MenuKeyBind>().ValueChanged += 按下显示_ValueChanged;
+			StreamMenu["屏蔽发话"].GetValue<MenuBool>().ValueChanged += 屏蔽发话_ValueChanged;
+        }
 
-		private void OnUpdate(EventArgs args) {
+		private void 屏蔽发话_ValueChanged(object sender, EventArgs e) {
+
 			if (StreamMenu["屏蔽发话"].GetValue<MenuBool>().Value)
 			{
 				Hacks.DisableSay = true;
@@ -230,20 +242,85 @@ namespace LSF小脚本.Features {
 			{
 				Hacks.DisableSay = false;
 			}
-			if (StreamMenu["屏蔽显示"].GetValue<MenuKeyBind>().Active 
-				||(StreamMenu["死亡屏蔽显示"].GetValue<MenuBool>().Value && Player.IsDead) )
+		}
+
+		private static void 按下显示_ValueChanged(object sender, EventArgs e) {
+			if (StreamMenu["按下显示"].GetValue<MenuKeyBind>().Active && Hacks.DisableDrawings == true)
 			{
-				if (!StreamMenu["按下显示"].GetValue<MenuKeyBind>().Active)
-				{
-					Hacks.DisableDrawings = true;
-				}
-				
+				Hacks.DisableDrawings = false;
+			}
+		}
+
+		private static void 屏蔽显示_ValueChanged(object sender, EventArgs e) {
+			if (StreamMenu["屏蔽显示"].GetValue<MenuKeyBind>().Active)
+			{
+				Hacks.DisableDrawings = true;
 			}
 			else
 			{
 				Hacks.DisableDrawings = false;
 			}
-			
+		}
+
+		private void Game_OnNotify(GameNotifyEventArgs args) {
+
+
+			if (args.EventId == GameEventId.OnGameStart || args.EventId == GameEventId.OnEndGame)
+			{
+				StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value = 0;
+			}
+
+			if (args.EventId == GameEventId.OnKill && args.NetworkId == GameObjects.Player.NetworkId)
+			{
+				StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value = 0;
+			}
+
+			if (args.NetworkId == GameObjects.Player.NetworkId
+				&& (args.EventId == GameEventId.OnChampionTripleKill
+					|| args.EventId == GameEventId.OnChampionQuadraKill
+					|| args.EventId == GameEventId.OnChampionPentaKill
+					|| args.EventId == GameEventId.OnAce)
+				&& Hacks.DisableDrawings == false)
+			{
+
+				if (StreamMenu["多杀屏蔽显示"].GetValue<MenuBool>().Value)
+				{
+					int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
+					Hacks.DisableDrawings = true;
+					DelayAction.Add(time * 1000, () =>
+					{
+						Hacks.DisableDrawings = false;
+					});
+				}
+
+			}
+
+			if (args.EventId == GameEventId.OnChampionDie
+				&& args.NetworkId == GameObjects.Player.NetworkId)
+			{
+				StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value += 1;
+
+
+				if (StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value >= 8
+					&& StreamMenu["超神屏蔽显示"].GetValue<MenuBool>().Value
+					&& Hacks.DisableDrawings == false)
+				{
+					int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
+
+					Hacks.DisableDrawings = true;
+					DelayAction.Add(time * 1000, () =>
+					{
+						Hacks.DisableDrawings = false;
+					});
+				}
+
+			}
+
+
+		}
+
+		private void OnUpdate(EventArgs args) {
+
 		}
 
 		private void Orbwalker_OnAction(object sender, Orbwalker.OrbwalkerActionArgs e) {
