@@ -62,7 +62,9 @@ namespace LSF小脚本.Features {
 						Notificed = true;
 						Notifications.Add(notification);
 					}
-					string info = hero.Name + ": " + detector.Value.First(itemId => itemId.GetScriptDetections() == maxValue).GetName() + ";";
+					string info = hero.IsAlly?"我方":"敌方" 
+						+ hero.ChampionName 
+						+ ": " + detector.Value.First(itemId => itemId.GetScriptDetections() == maxValue).GetName() + ";";
 					content += info + Environment.NewLine;
 				}
                

@@ -37,16 +37,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="LeagueSharp">
-      <HintPath>C:\Users\Ghost\Desktop\LeagueSharp\System\LeagueSharp.dll</HintPath>
+      <HintPath>E:\L#工具\LeagueSharp\System\LeagueSharp.dll</HintPath>
     </Reference>
     <Reference Include="LeagueSharp.SDK">
-      <HintPath>C:\Users\Ghost\Desktop\LeagueSharp\System\LeagueSharp.SDK.dll</HintPath>
+      <HintPath>E:\L#工具\LeagueSharp\System\LeagueSharp.SDK.dll</HintPath>
     </Reference>
     <Reference Include="SharpDX">
-      <HintPath>C:\Users\Ghost\Desktop\LeagueSharp\System\SharpDX.dll</HintPath>
+      <HintPath>E:\L#工具\LeagueSharp\System\SharpDX.dll</HintPath>
     </Reference>
     <Reference Include="SharpDX.Direct3D9">
-      <HintPath>C:\Users\Ghost\Desktop\LeagueSharp\System\SharpDX.Direct3D9.dll</HintPath>
+      <HintPath>E:\L#工具\LeagueSharp\System\SharpDX.Direct3D9.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -68,6 +68,7 @@
     <Compile Include="Features\打野计时.cs" />
     <Compile Include="Features\显示时间.cs" />
     <Compile Include="Features\检测外挂.cs" />
+    <Compile Include="Features\自带功能.cs" />
     <Compile Include="Interface\IDetector.cs" />
     <Compile Include="library\Convert.cs" />
     <Compile Include="library\GameObjects.cs" />

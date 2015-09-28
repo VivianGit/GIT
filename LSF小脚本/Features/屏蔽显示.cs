@@ -28,7 +28,8 @@ namespace LSF小脚本.Features {
 		static Menu StreamMenu;
 		static MenuKeyBind DisalbeDrawMenu;
 		static bool DisableDrawings;
-		Obj_AI_Hero Player = ObjectManager.Player;
+		static float DisableTime;
+        Obj_AI_Hero Player = ObjectManager.Player;
 		static int Kills = 0;
 		/// <summary>
 		/// If the user is attacking
@@ -226,11 +227,25 @@ namespace LSF小脚本.Features {
 			Spellbook.OnCastSpell += BeforeSpellCast;
 			Obj_AI_Base.OnIssueOrder += OnIssueOrder;
 			Game.OnNotify += Game_OnNotify;
+			Game.OnStart += Game_OnStart;
+
+
+			StreamMenu["屏蔽显示"].GetValue<MenuKeyBind>().Active = Hacks.DisableDrawings;
+			StreamMenu["屏蔽发话"].GetValue<MenuBool>().Value = Hacks.DisableSay;
 
 			StreamMenu["屏蔽显示"].GetValue<MenuKeyBind>().ValueChanged += 屏蔽显示_ValueChanged;
 			StreamMenu["按下显示"].GetValue<MenuKeyBind>().ValueChanged += 按下显示_ValueChanged;
 			StreamMenu["屏蔽发话"].GetValue<MenuBool>().ValueChanged += 屏蔽发话_ValueChanged;
-        }
+
+			DisableTime = Game.ClockTime;
+			Logging.Write()(LogLevel.Info, "载入========"+ DisableTime);
+
+		}
+
+		private void Game_OnStart(EventArgs args) {
+			Logging.Write()(LogLevel.Info, "Game_OnStart========");
+			StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value = 0;
+		}
 
 		private void 屏蔽发话_ValueChanged(object sender, EventArgs e) {
 
@@ -263,36 +278,14 @@ namespace LSF小脚本.Features {
 		}
 
 		private void Game_OnNotify(GameNotifyEventArgs args) {
-
-
-			if (args.EventId == GameEventId.OnGameStart || args.EventId == GameEventId.OnEndGame)
-			{
-				StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value = 0;
-			}
+			//args.EventId == GameEventId.OnChampionKillPost
+			//args.EventId == GameEventId.OnChampionPentaAssist
+			//args.EventId == GameEventId.OnClearAscended
+			// args.EventId == GameEventId.OnKillDragonSteal
 
 			if (args.EventId == GameEventId.OnKill && args.NetworkId == GameObjects.Player.NetworkId)
 			{
 				StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value = 0;
-			}
-
-			if (args.NetworkId == GameObjects.Player.NetworkId
-				&& (args.EventId == GameEventId.OnChampionTripleKill
-					|| args.EventId == GameEventId.OnChampionQuadraKill
-					|| args.EventId == GameEventId.OnChampionPentaKill
-					|| args.EventId == GameEventId.OnAce)
-				&& Hacks.DisableDrawings == false)
-			{
-
-				if (StreamMenu["多杀屏蔽显示"].GetValue<MenuBool>().Value)
-				{
-					int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
-					Hacks.DisableDrawings = true;
-					DelayAction.Add(time * 1000, () =>
-					{
-						Hacks.DisableDrawings = false;
-					});
-				}
-
 			}
 
 			if (args.EventId == GameEventId.OnChampionDie
@@ -305,22 +298,69 @@ namespace LSF小脚本.Features {
 					&& StreamMenu["超神屏蔽显示"].GetValue<MenuBool>().Value
 					&& Hacks.DisableDrawings == false)
 				{
-					int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
+					DisableTime = Game.ClockTime;
+					//int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
 
-					Hacks.DisableDrawings = true;
-					DelayAction.Add(time * 1000, () =>
-					{
-						Hacks.DisableDrawings = false;
-					});
+					//Hacks.DisableDrawings = true;
+					//DelayAction.Add(time * 1000, () =>
+					//{
+					//	Hacks.DisableDrawings = false;
+					//});
 				}
 
 			}
 
+			//args.NetworkId == GameObjects.Player.NetworkId&&
+
+			if ((args.EventId == GameEventId.OnChampionTripleKill
+					|| args.EventId == GameEventId.OnChampionQuadraKill
+					|| args.EventId == GameEventId.OnChampionPentaKill
+					|| args.EventId == GameEventId.OnAce)
+				)
+			{
+
+				if (StreamMenu["多杀屏蔽显示"].GetValue<MenuBool>().Value)
+				{
+					DisableTime = Game.ClockTime;
+					//int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
+					//Hacks.DisableDrawings = true;
+					//DelayAction.Add((time + 2) * 1000, () =>
+					//{
+					//	Hacks.DisableDrawings = false;
+					//});
+					//var ClockTime = Game.ClockTime;
+					//while (Game.ClockTime - ClockTime > time * 1000)
+					//{
+					//	Hacks.DisableDrawings = true;
+					//}
+					//Hacks.DisableDrawings = false;
+
+				}
+
+			}
 
 		}
 
 		private void OnUpdate(EventArgs args) {
-
+			int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
+			//Logging.Write()(LogLevel.Info, "ClockTime" + Game.ClockTime);
+			//Logging.Write()(LogLevel.Info, "DisableTime" + DisableTime);
+			if ((Game.ClockTime - DisableTime) <= time)
+			{
+				Hacks.DisableDrawings = true;
+			}
+			else
+			{
+				if (StreamMenu["屏蔽显示"].GetValue<MenuKeyBind>().Active)
+				{
+					Hacks.DisableDrawings = true;
+				}
+				else
+				{
+					Hacks.DisableDrawings = false;
+				}
+			}
+			
 		}
 
 		private void Orbwalker_OnAction(object sender, Orbwalker.OrbwalkerActionArgs e) {

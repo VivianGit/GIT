@@ -31,6 +31,7 @@ namespace LSF小脚本 {
 			new Features.屏蔽显示();
 			//new Features.塔防范围();
 			new Features.检测外挂();
+			new Features.自带功能();
 			Config.Attach();
 			
 			var startNotifi = new Notification("L#资源网小工具", "Http://lsharp.xyz\n我们将持续更新相关内容\n打野计时 载入");
