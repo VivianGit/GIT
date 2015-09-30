@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
+using Color = System.Drawing.Color;
 
 namespace MagicalGirlLux
 {
@@ -17,6 +18,7 @@ namespace MagicalGirlLux
 		public const string ChampName = "Lux";
 		public static Menu Config;
 		public static Orbwalking.Orbwalker Orbwalker;
+		
 		public static Spell Q, W, E, R;
 		public static HpBarIndicator Hpi = new HpBarIndicator();
 		private static SpellSlot Ignite;
@@ -25,8 +27,8 @@ namespace MagicalGirlLux
 
 		private static void Main(string[] args)
 		{
-
-			CustomEvents.Game.OnGameLoad += OnLoad;
+			
+            CustomEvents.Game.OnGameLoad += OnLoad;
 		}
 
 
@@ -67,8 +69,6 @@ namespace MagicalGirlLux
 			var misc = Config.AddSubMenu(new Menu("[光辉]: 高级设置", "Misc Settings"));
 			var drawing = Config.AddSubMenu(new Menu("[光辉]: 显示设置", "Draw Settings"));
 			var debug = Config.AddSubMenu(new Menu("[光辉]: 调试输出", "debug"));
-			Config.AddItem(new MenuItem("Science", "作者：ScienceARK"));
-			Config.AddItem(new MenuItem("Science2", "翻译：晴依"));
 
             combo.SubMenu("[连招]蓝量管理")
                 .AddItem(new MenuItem("qmana", "[Q] 蓝量 %").SetValue(new Slider(10, 100, 0)));
@@ -110,10 +110,12 @@ namespace MagicalGirlLux
             drawing.AddItem(new MenuItem("Wdraw", "显示 W 范围").SetValue(new Circle(true, System.Drawing.Color.DarkOrange)));
             drawing.AddItem(new MenuItem("Edraw", "显示 E 范围").SetValue(new Circle(true, System.Drawing.Color.AntiqueWhite)));
             drawing.AddItem(new MenuItem("Rdraw", "显示 R 范围").SetValue(new Circle(true, System.Drawing.Color.CornflowerBlue)));
-            drawing.AddItem(new MenuItem("RLine", "显示 [R] 预判").SetValue(new Circle(true, System.Drawing.Color.SkyBlue)));
+			drawing.AddItem(new MenuItem("MiniRdraw", "小地图显示 R 范围").SetValue(true));
+			drawing.AddItem(new MenuItem("RLine", "显示 [R] 预判").SetValue(new Circle(true, System.Drawing.Color.SkyBlue)));
+			drawing.AddItem(new MenuItem("PermaShowJungleKs", "小菜单显示 R偷野 状态").SetValue(true));
+			drawing.AddItem(new MenuItem("PermaShowDoNotStellAlly", "小菜单显示 是否抢自家Buff").SetValue(true));
 
-
-            harass.AddItem(new MenuItem("autoharass", "自动消耗开关").SetValue(new KeyBind('L', KeyBindType.Toggle)));
+			harass.AddItem(new MenuItem("autoharass", "自动消耗开关").SetValue(new KeyBind('L', KeyBindType.Toggle)));
             harass.AddItem(new MenuItem("Qharass", "使用 Q").SetValue(true));
             harass.AddItem(new MenuItem("Qharassslowed", "只有当敌人被减速/击晕/禁锢时才放Q").SetValue(false));
             harass.AddItem(new MenuItem("Eharass", "使用 E").SetValue(true));
@@ -147,7 +149,7 @@ namespace MagicalGirlLux
                 .AddItem(new MenuItem("blank", "                                        "));
 
             jungleclear.AddItem(
-                new MenuItem("jungleks", "抢野开关").SetValue(new KeyBind('K', KeyBindType.Toggle)));
+                new MenuItem("jungleks", "大招抢野开关").SetValue(new KeyBind('H', KeyBindType.Toggle)));
 
 			jungleclear.AddItem(new MenuItem("DoNotStellAlly","不抢自己家野怪").SetValue(true));
 
@@ -186,6 +188,12 @@ namespace MagicalGirlLux
                     Hpi.drawDmg(CalcDamage(enemy), System.Drawing.Color.Green);
                 }
             }
+			//MiniRdraw
+			if (Config.Item("MiniRdraw").GetValue<bool>() && R.IsReady() && !player.IsDead)
+			{
+				Utility.DrawCircle(player.Position, R.Range, Color.LightBlue, 2, 20, true);
+				//Render.Circle.DrawCircle(player.Position, R.Range, Color.White);
+			}
         }
 
         private static int CalcDamage(Obj_AI_Base target)
@@ -283,11 +291,15 @@ namespace MagicalGirlLux
         }
         private static void OnDraw(EventArgs args)
         {
-            var pos = Drawing.WorldToScreen(ObjectManager.Player.Position);
-            if (Config.Item("jungleks").GetValue<KeyBind>().Active)
-                Drawing.DrawText(pos.X - 50, pos.Y + 50, System.Drawing.Color.HotPink, "[R] Junglesteal Enabled");
-            if (Config.Item("autoharass").GetValue<KeyBind>().Active)
-                Drawing.DrawText(pos.X - 50, pos.Y + 30, System.Drawing.Color.Plum, "AutoHarass Enabled");
+			PermaShow.Permashow(Config.Item("jungleks"), Config.Item("PermaShowJungleKs").GetValue<bool>(),"[光辉] 大招抢野");
+			PermaShow.Permashow(Config.Item("DoNotStellAlly"), Config.Item("PermaShowDoNotStellAlly").GetValue<bool>(), "[光辉] 不抢队友Buff");
+
+			//var pos = Drawing.WorldToScreen(ObjectManager.Player.Position);
+   //         if (Config.Item("jungleks").GetValue<KeyBind>().Active)
+   //             Drawing.DrawText(pos.X - 50, pos.Y + 50, System.Drawing.Color.HotPink, "[R] Junglesteal Enabled");
+   //         if (Config.Item("autoharass").GetValue<KeyBind>().Active)
+   //             Drawing.DrawText(pos.X - 50, pos.Y + 30, System.Drawing.Color.Plum, "AutoHarass Enabled");
+				
             if (Config.Item("Draw_Disabled").GetValue<bool>())
                 return;
             {
@@ -560,18 +572,16 @@ namespace MagicalGirlLux
 
                 if (blueBuff != null)
 				{
-					var BuffIsAlly = ((blueBuff.Position.Distance(new Vector3(3800.99f, 7883.53f, 52.18f)) < 200 && player.Team == GameObjectTeam.Order)
-						|| (blueBuff.Position.Distance(new Vector3(10984.11f, 6960.31f, 51.72f)) < 200 && player.Team == GameObjectTeam.Chaos)) 
+					var BuffIsAlly = ((blueBuff.Name == "SRU_Blue1.1.1" && player.Team == GameObjectTeam.Order)
+						|| (blueBuff.Name == "SRU_Blue7.1.1" && player.Team == GameObjectTeam.Chaos))
 						? true : false;
-					//不抢队友
 					if ((!Config.Item("DoNotStellAlly").GetValue<bool>() && BuffIsAlly) || !BuffIsAlly)
 					{
 						R.Cast(blueBuff, Config.Item("packetcast").GetValue<bool>());
 					}
-					
 				}
-                    
-            }
+
+			}
 
             if (Config.Item("Red").GetValue<bool>())//
             {
@@ -582,17 +592,17 @@ namespace MagicalGirlLux
                         .FirstOrDefault(x => (x.IsAlly) || (x.IsEnemy));
 
 				if (redBuff != null) {
-					var BuffIsAlly = ((redBuff.Position.Distance(new Vector3(7813.07f, 4051.33f, 53.81f)) < 200 && player.Team == GameObjectTeam.Order)
-						|| (redBuff.Position.Distance(new Vector3(139.29f, 10779.34f, 56.38f)) < 200 && player.Team == GameObjectTeam.Chaos))
+					var BuffIsAlly = ((redBuff.Name == "SRU_Red4.1.1" && player.Team == GameObjectTeam.Order)
+						|| (redBuff.Name == "SRU_Red10.1.1" && player.Team == GameObjectTeam.Chaos))
 						? true : false;
-					//不抢队友
+
 					if ((!Config.Item("DoNotStellAlly").GetValue<bool>() && BuffIsAlly) || !BuffIsAlly)
 					{
 						R.Cast(redBuff, Config.Item("packetcast").GetValue<bool>());
 					}
 				}
-                   
-            }
+
+			}
 
             if (Config.Item("Baron").GetValue<bool>())//
             {
