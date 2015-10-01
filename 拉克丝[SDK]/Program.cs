@@ -62,7 +62,8 @@ namespace 拉克丝_SDK_ {
 			if (args.WParam == (uint)Config["R技能"]["半手动R"].GetValue<MenuKeyBind>().Key)
 			{
 				R.CastOnBestTarget(0,true,1);
-			}
+				//Game.PrintChat("R.CastOnBestTarget(0,true,1);");
+            }
 		}
 
 		//是否是二段E
@@ -71,7 +72,9 @@ namespace 拉克丝_SDK_ {
         }
 
 		private static void Dash_OnDash(object sender, Dash.DashArgs e) {
-			
+			var hero = sender as Obj_AI_Hero;
+			if (hero.IsAlly) return;
+
 			if (Config["E技能"]["自动E"].GetValue<MenuBool>() )
 			{
 				//如果他脚本下，就马上引爆
@@ -242,7 +245,8 @@ namespace 拉克丝_SDK_ {
 			#region 自动R
 			if (Config["R技能"]["自动R"].GetValue<MenuBool>())
 			{
-				R.CastIfWillHit(R.GetTarget(), 3);
+				//R.CastIfWillHit(R.GetTarget(), 4,true);
+				//Game.PrintChat("R.CastIfWillHit(R.GetTarget(), 4);");
 			}
 			#endregion
 		}
@@ -283,7 +287,8 @@ namespace 拉克丝_SDK_ {
 				if (Rtarget.Health < GetRdmg(Rtarget))
 				{
 					R.CastIfHitchanceMinimum(Rtarget,HitChance.High);
-				}
+					//Game.PrintChat("R KS");
+                }
 				
 			}
 		}
