@@ -238,12 +238,10 @@ namespace LSF小脚本.Features {
 			StreamMenu["屏蔽发话"].GetValue<MenuBool>().ValueChanged += 屏蔽发话_ValueChanged;
 
 			DisableTime = Game.ClockTime;
-			Logging.Write()(LogLevel.Info, "载入========"+ DisableTime);
 
 		}
 
 		private void Game_OnStart(EventArgs args) {
-			Logging.Write()(LogLevel.Info, "Game_OnStart========");
 			StreamMenu["已连杀人数"].GetValue<MenuSlider>().Value = 0;
 		}
 
@@ -299,13 +297,7 @@ namespace LSF小脚本.Features {
 					&& Hacks.DisableDrawings == false)
 				{
 					DisableTime = Game.ClockTime;
-					//int time = StreamMenu["多杀屏蔽时间"].GetValue<MenuSlider>().Value;
-
-					//Hacks.DisableDrawings = true;
-					//DelayAction.Add(time * 1000, () =>
-					//{
-					//	Hacks.DisableDrawings = false;
-					//});
+					
 				}
 
 			}
@@ -373,6 +365,7 @@ namespace LSF小脚本.Features {
 			{
 				AfterAttack(sender,e.Target);
             }
+			
 		}
 		private static void AfterAttack(object unit, AttackableUnit target) {
 			attacking = false;
