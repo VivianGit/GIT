@@ -71,9 +71,11 @@ namespace LSF小脚本.Features {
                         Notifications.Add(notification);
 					}
 					string info = (hero.IsAlly ? "我方" : "敌方")
-						+ hero.ChampionName
+						+" "
+						+ Utf2Ansi(hero.Name)
+						+ "("+ hero.ChampionName+")"
 						+ ": " + detector.Value.First(itemId => itemId.GetScriptDetections() == maxValue).GetName() 
-						+ "("+ maxValue+")"
+						+ "["+ maxValue+"]"
 						+ ";";
 					content += info + Environment.NewLine;
 
@@ -85,6 +87,19 @@ namespace LSF小脚本.Features {
 			}
 
         }
+
+		public static string Ansi2Utf(string s) {
+			var b = Encoding.Convert(Encoding.Default, Encoding.Unicode, Encoding.Default.GetBytes(s));
+			b = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, b);
+			return Encoding.Default.GetString(b);
+
+		}
+
+		public static string Utf2Ansi(string s) {
+			var b = Encoding.Convert(Encoding.UTF8, Encoding.Unicode, Encoding.Default.GetBytes(s));
+			b = Encoding.Convert(Encoding.Unicode, Encoding.Default, b);
+			return Encoding.Default.GetString(b);
+		}
 
 		private void Obj_AI_Hero_OnNewPath(Obj_AI_Base sender, GameObjectNewPathEventArgs args) {
 			if (!Config["启用"].GetValue<MenuBool>()) return;
