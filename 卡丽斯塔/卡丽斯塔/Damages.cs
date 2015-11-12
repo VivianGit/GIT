@@ -43,7 +43,7 @@ namespace Aessmbly {
 			return GetRendDamage(target) > totalHealth;
 		}
 
-		public static float GetRendDamage(Obj_AI_Hero target) {
+		public static float GetRendDamage(Obj_AI_Base target) {
 			return GetRendDamage(target, -1);
 		}
 

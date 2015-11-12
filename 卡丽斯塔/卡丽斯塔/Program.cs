@@ -88,6 +88,8 @@ namespace Aessmbly {
 		private static void Game_OnStart(EventArgs args) {
 			if (Player.ChampionName != "Kalista") return;
 
+			Extensions.PrintChat("卡丽斯塔：就这么载入了一个脚本。。。");
+
 			LoadMenu();
 			LoadSpell();
 			LoadSentinel();
@@ -257,7 +259,7 @@ namespace Aessmbly {
 			}
 			#endregion
 
-			DrawDamage();
+			//DrawDamage();
         }
 
 		private static void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target) {
@@ -308,6 +310,7 @@ namespace Aessmbly {
 		}
 
 		private static void Game_OnUpdate(EventArgs args) {
+
 			PermaActive();
 
 			switch (Orbwalker.ActiveMode)
@@ -339,12 +342,13 @@ namespace Aessmbly {
 					if (Config.Item("alert").GetValue<bool>() && entry.Value.Any(o => o.Value.Health == 1))
 					{
 						var activeSentinel = entry.Value.First(o => o.Value.Health == 1);
-						Game.PrintChat("[Kalista] Sentinel at {0} taking damage! (local ping)",
+						var pingstring = string.Format("[卡丽斯塔] 哨兵在{0}被攻击!",
 							string.Concat((entry.Key == GameObjectTeam.Order
-								? "Blue-Jungle"
+								? "蓝BUFF处"
 								: entry.Key == GameObjectTeam.Chaos
-									? "Red-Jungle"
-									: "Lake"), " (", activeSentinel.Key, ")"));
+									? "红BUFF处"
+									: "河道"), " (", activeSentinel.Key, ")"));
+						Extensions.PrintChat(pingstring);
 						Game.ShowPing(PingCategory.Fallback, activeSentinel.Value.Position, true);
 					}
 
@@ -359,15 +363,15 @@ namespace Aessmbly {
 					}
 				}
 
-				if (Config.Item("enabled").GetValue<bool>() && Program.W.IsReady() && Program.Player.ManaPercent >= Config.Item("mana").GetValue<Slider>().Value && !Program.Player.IsRecalling())
+				if (Config.Item("enabledW").GetValue<bool>()&& !Player.InBase() && W.IsReady() && Player.ManaPercent >= Config.Item("mana").GetValue<Slider>().Value && !Player.IsRecalling())
 				{
-					if (!Config.Item("noMode").GetValue<bool>() || Program.Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.None)
+					if (!Config.Item("noMode").GetValue<bool>() || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.None)
 					{
 						if (OpenLocations.Count > 0 && SentLocation == null)
 						{
 
-							var closestLocation = OpenLocations.Where(o => Locations[o.Item1][o.Item2].Distance(Program.Player) < Program.W.Range - MaxRandomRadius / 2)
-								.OrderByDescending(o => Locations[o.Item1][o.Item2].Distance(Program.Player, true))
+							var closestLocation = OpenLocations.Where(o => Locations[o.Item1][o.Item2].Distance(Player) < W.Range - MaxRandomRadius / 2)
+								.OrderByDescending(o => Locations[o.Item1][o.Item2].Distance(Player, true))
 								.FirstOrDefault();
 							if (closestLocation != null)
 							{
@@ -375,7 +379,7 @@ namespace Aessmbly {
 								var randomized = (new Vector2(position.X - MaxRandomRadius / 2 + Random.NextFloat(0, MaxRandomRadius),
 									position.Y - MaxRandomRadius / 2 + Random.NextFloat(0, MaxRandomRadius))).To3D();
 								SentLocation = closestLocation;
-								Program.W.Cast(randomized);
+								W.Cast(randomized);
 								Utility.DelayAction.Add(2000, () => SentLocation = null);
 							}
 						}
@@ -404,7 +408,6 @@ namespace Aessmbly {
 
 			if (Config.Item("fleeAutoattack").GetValue<bool>() && !Config.Item("fleeWalljump").GetValue<bool>())
 			{
-
 				var dashObjects = VectorHelper.GetDashObjects();
 				Orbwalker.ForceTarget(dashObjects.Count > 0 ? dashObjects[0] : null);
 			}
@@ -760,7 +763,7 @@ namespace Aessmbly {
 			}
 			else
 			{
-				WMenu.AddItem(new MenuItem("enabled", "自动W").SetValue(true));
+				WMenu.AddItem(new MenuItem("enabledW", "自动W").SetValue(true));
 				WMenu.AddItem(new MenuItem("noMode", "只在没有任何攻击模式时自动W").SetValue(true));
 				WMenu.AddItem(new MenuItem("alert", "当W哨兵被攻击时警告").SetValue(true));
 				WMenu.AddItem(new MenuItem("mana", "释放W时最少蓝量%").SetValue(new Slider(40)));

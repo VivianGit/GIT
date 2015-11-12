@@ -8,13 +8,32 @@ using System.Threading.Tasks;
 
 namespace Aessmbly {
 	public static class Extensions {
+
+		public static void PrintChat(string chat) {
+			
+			var bytes = Encoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(chat));
+			//bytes = Encoding.Convert(MidEncoding, EndEncoding, bytes);
+			chat = Encoding.Default.GetString(bytes);
+			Game.PrintChat(chat);
+		}
+
+		public static bool InBase(this Obj_AI_Hero hero) {
+			foreach (var item in ObjectManager.Get<Obj_Shop>())
+			{
+				if (hero.Distance(item)<5000)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public static bool HasRendBuff(this Obj_AI_Base target) {
 			return target.GetRendBuff() != null;
 		}
 
 		public static BuffInstance GetRendBuff(this Obj_AI_Base target) {
 			return target.Buffs.FirstOrDefault(b => b.Caster.IsMe && b.IsValid &&b.DisplayName== "KalistaExpungeMarker");
-			
 		}
 
 		public static bool HasUndyingBuff(this Obj_AI_Hero target) {
