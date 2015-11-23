@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading.Tasks; 
 
 namespace 锤石 {
 	public static class Extensions {
@@ -46,6 +46,11 @@ namespace 锤石 {
 		/// <param name="target">远离目标</param>
 		/// <returns></returns>
 		public static bool IsFleeing(this Obj_AI_Hero hero,Obj_AI_Base target) {
+			if (hero == null || target==null)
+			{
+				return false;
+			}
+
 			if (target.Distance(hero.Position)<target.Distance(hero.Path.Last()))
 			{
 				return true;
@@ -59,6 +64,10 @@ namespace 锤石 {
 		/// <param name="target">追击目标</param>
 		/// <returns></returns>
 		public static bool IsChaseing(this Obj_AI_Hero hero, Obj_AI_Base target) {
+			if (hero == null || target == null)
+			{
+				return false;
+			}
 			if (hero.Distance(target.Position) > hero.Distance(target.Path.Last()))
 			{
 				return true;
@@ -76,30 +85,36 @@ namespace 锤石 {
             return target.HasBuffOfType(BuffType.SpellShield) || target.HasBuffOfType(BuffType.SpellImmunity);
 		}
 
-		public static Obj_AI_Turret GetMostCloseTower(this Obj_AI_Hero target) {
+		public static Obj_AI_Turret GetMostCloseTower(this Obj_AI_Base target) {
 			Obj_AI_Turret tur = null;
+
+			if (target.IsDead) return null;
+
 			foreach (var turret in ObjectManager.Get<Obj_AI_Turret>().Where(t =>
 				t.IsValid && !t.IsDead && t.Health > 1f && t.IsVisible && t.Distance(target)< 1000))
 			{
-				if (tur == null)
+				if (turret != null)
 				{
-					tur = turret;
-				}
-				else if(tur.Distance(target)>turret.Distance(target))
-				{
-					
-					tur = turret;
+					if (tur == null)
+					{
+						tur = turret;
+					}
+					else if (tur!=null && tur.Distance(target) > turret.Distance(target))
+					{
+
+						tur = turret;
+					}
 				}
             }
 			return tur;
 		}
 
-		public static bool IsInTurret(this Obj_AI_Hero targetHero, Obj_AI_Turret targetTurret = null) {
+		public static bool IsInTurret(this Obj_AI_Base targetHero, Obj_AI_Turret targetTurret = null) {
 			if (targetTurret == null)
 			{
 				targetTurret = targetHero.GetMostCloseTower();
             }
-			if (targetHero.Distance(targetTurret)<850)
+			if (targetTurret!=null && targetHero.Distance(targetTurret)<850)
 			{
 				return true;
 			}
@@ -139,6 +154,37 @@ namespace 锤石 {
 				}
 			}
 			return null;
+		}
+
+		public static bool CastOKTW(this Spell spell, Obj_AI_Base target, OPrediction.HitChance hitChance) {
+			var Config = Program.Config;
+			var Player = Program.Player;
+
+			OPrediction.SkillshotType CoreType2 = OPrediction.SkillshotType.SkillshotLine;
+			bool aoe2 = false;
+
+			var predInput2 = new OPrediction.PredictionInput
+			{
+				Aoe = aoe2,
+				Collision = spell.Collision,
+				Speed = spell.Speed,
+				Delay = spell.Delay,
+				Range = spell.Range,
+				From = Player.ServerPosition,
+				Radius = spell.Width,
+				Unit = target,
+				Type = CoreType2
+			};
+			var poutput2 = OPrediction.Prediction.GetPrediction(predInput2);
+
+			if (spell.Speed != float.MaxValue && OPrediction.CollisionYasuo(Player.ServerPosition, poutput2.CastPosition))
+				return false;
+
+			if (poutput2.Hitchance >= hitChance)
+			{
+				return spell.Cast(poutput2.CastPosition);
+			}
+			return false;
 		}
 	}
 }
