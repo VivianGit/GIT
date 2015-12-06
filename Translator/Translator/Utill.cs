@@ -24,8 +24,7 @@ namespace Translator {
 
 		public static string TranslateByBaidu(string message, string from, string to) {
 			
-			string url = string.Format("http://openapi.baidu.com/public/2.0/bmt/translate?client_id=ZFP9CoV9s6guCG5z1uuKOAdQ&q={0}&from={1}&to={2}", message, from, to);
-
+			string url = string.Format("https://openapi.baidu.com/public/2.0/bmt/translate?client_id=ZFP9CoV9s6guCG5z1uuKOAdQ&q={0}&from={1}&to={2}", message, from, to);
 			Console.WriteLine(url);
 
 			var wr = WebRequest.Create(url);
