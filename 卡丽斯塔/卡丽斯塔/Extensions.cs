@@ -5,16 +5,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Color = System.Drawing.Color;
 
 namespace Aessmbly {
 	public static class Extensions {
 
-		public static void PrintChat(string chat) {
-			
-			var bytes = Encoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(chat));
-			//bytes = Encoding.Convert(MidEncoding, EndEncoding, bytes);
-			chat = Encoding.Default.GetString(bytes);
-			Game.PrintChat(chat);
+		//转换为对话框用
+		public static string ToUTF8(this string form) {
+			var bytes = Encoding.Convert(Encoding.Default, Encoding.UTF8, Encoding.Default.GetBytes(form));
+			return Encoding.Default.GetString(bytes);
+		}
+		//转换为菜单用
+		public static string ToGBK(this string form) {
+			var bytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, Encoding.Default.GetBytes(form));
+			return Encoding.Default.GetString(bytes);
+		}
+
+
+		public static string ToHtml(this string form, Color color, FontStlye fontStlye = FontStlye.Null) {
+			string colorhx = "#"+ color.ToArgb().ToString("X6");
+            return form.ToHtml(colorhx, fontStlye);
+		}
+
+		public static string ToHtml(this string form, string color, FontStlye fontStlye = FontStlye.Null) {
+			form = form.ToUTF8();
+			form = string.Format("<font color=\"{0}\">{1}</font>", color, form);
+
+			if (fontStlye != FontStlye.Null)
+			{
+				switch (fontStlye)
+				{
+					case FontStlye.Bold:
+						form = string.Format("<b>{0}</b>", form);
+						break;
+					case FontStlye.Cite:
+						form = string.Format("<i>{0}</i>", form);
+						break;
+				}
+			}
+			return form;
 		}
 
 		public static bool InBase(this Obj_AI_Hero hero) {

@@ -88,7 +88,10 @@ namespace Aessmbly {
 		private static void Game_OnStart(EventArgs args) {
 			if (Player.ChampionName != "Kalista") return;
 
-			Extensions.PrintChat("卡丽斯塔：就这么载入了一个脚本。。。");
+			Game.PrintChat(
+				"卡丽斯塔".ToHtml("#AAAAFF", FontStlye.Bold)
+				+ " - "
+				+ "你们无处可逃！我说了，你们无处可逃！".ToHtml(Color.Yellow, FontStlye.Cite));
 
 			LoadMenu();
 			LoadSpell();
@@ -348,8 +351,8 @@ namespace Aessmbly {
 								: entry.Key == GameObjectTeam.Chaos
 									? "红BUFF处"
 									: "河道"), " (", activeSentinel.Key, ")"));
-						Extensions.PrintChat(pingstring);
-						Game.ShowPing(PingCategory.Fallback, activeSentinel.Value.Position, true);
+						Utill.Print(pingstring);
+                        Game.ShowPing(PingCategory.Fallback, activeSentinel.Value.Position, true);
 					}
 
 					var invalid = entry.Value.Where(o => !o.Value.IsValid || o.Value.Health < 2 || o.Value.GetBuffCount("kalistaw") == 0).ToArray();
@@ -611,9 +614,10 @@ namespace Aessmbly {
 
 				ActiveExploit(target);
 
-                if (Config.Item("comboUseAA").GetValue<bool>() && Orbwalking.CanAttack() && !Orbwalker.InAutoAttackRange(target) &&
+                if (Config.Item("comboUseAA").GetValue<bool>() && Orbwalking.CanAttack() && target.Distance(Player)< Player.AttackRange + Player.BoundingRadius + 20 &&
 					Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LaneClear)
 				{
+					
 					var targetMinion = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(o => Orbwalker.InAutoAttackRange(o));
                     Orbwalker.ForceTarget(targetMinion);
 					ActiveExploit(targetMinion);
@@ -748,10 +752,10 @@ namespace Aessmbly {
 			var MiscMenu = new Menu("其它设置", "其它设置");
 			MiscMenu.AddItem(new MenuItem("killsteal", "E抢人头").SetValue(true));
 			MiscMenu.AddItem(new MenuItem("bigE", "总是E死大车兵").SetValue(true));
-			MiscMenu.AddItem(new MenuItem("saveSoulbound", "R救队友"));
+			MiscMenu.AddItem(new MenuItem("saveSoulbound", "R救队友").SetValue(true));
 			MiscMenu.AddItem(new MenuItem("secureE", "来不及平A时，用E补刀").SetValue(true));
 			MiscMenu.AddItem(new MenuItem("harassPlus", "自动E死小兵消耗有标记的敌人").SetValue(true));
-			MiscMenu.AddItem(new MenuItem("autoBelowHealthE", "当血量少于% 自动E").SetValue(new Slider(1)));
+			MiscMenu.AddItem(new MenuItem("autoBelowHealthE", "当血量少于% 自动E").SetValue(new Slider(3)));
 			MiscMenu.AddItem(new MenuItem("reductionE", "计算E伤害时少算？点").SetValue(new Slider(20)));
 			MiscMenu.AddItem(new MenuItem("Exploit", "使用漏洞").SetValue(false));
 			Config.AddSubMenu(MiscMenu);

@@ -24,7 +24,7 @@ namespace Aessmbly {
 		}
 
 		private static void OnTick(EventArgs args) {
-			if (SoulBound == null)
+			if (Program.Player.Level>5 && SoulBound == null)
 			{
 				SoulBound = HeroManager.Allies.Find(h => !h.IsMe && h.Buffs.Any(b => b.Caster.IsMe && b.Name == "kalistacoopstrikeally"));
 			}
