@@ -614,7 +614,7 @@ namespace Aessmbly {
 
 				ActiveExploit(target);
 
-                if (Config.Item("comboUseAA").GetValue<bool>() && Orbwalking.CanAttack() && target.Distance(Player)< Player.AttackRange + Player.BoundingRadius + 20 &&
+                if (Config.Item("comboUseAA").GetValue<bool>() && Orbwalking.CanAttack() && target.Distance(Player) > Player.AttackRange + Player.BoundingRadius + 20 &&
 					Orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LaneClear)
 				{
 					
