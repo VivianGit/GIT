@@ -62,7 +62,11 @@ namespace Aessmbly {
 		}
 
 		public static BuffInstance GetRendBuff(this Obj_AI_Base target) {
-			return target.Buffs.FirstOrDefault(b => b.Caster.IsMe && b.IsValid &&b.DisplayName== "KalistaExpungeMarker");
+			if (target==null || target.IsDead || !target.HasBuff("KalistaExpungeMarker"))
+			{
+				return null;
+			}
+			return target.Buffs.FirstOrDefault(b => b.Caster.IsMe && b.DisplayName == "KalistaExpungeMarker");
 		}
 
 		public static bool HasUndyingBuff(this Obj_AI_Hero target) {

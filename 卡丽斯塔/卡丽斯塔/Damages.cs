@@ -56,7 +56,8 @@ namespace Aessmbly {
 		}
 
 		public static float GetRawRendDamage(Obj_AI_Base target, int customStacks = -1) {
-			var stacks = (customStacks > -1 ? customStacks : target.HasRendBuff() ? target.GetRendBuff().Count : 0) - 1;
+			var stacks = (customStacks > -1  ? customStacks :
+				target.HasRendBuff() ? target.GetRendBuff().Count : 0) - 1;
 			if (stacks > -1)
 			{
 				var index = Program.E.Level - 1;

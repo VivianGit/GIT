@@ -95,7 +95,7 @@ namespace Aessmbly {
 
 			LoadMenu();
 			LoadSpell();
-			LoadSentinel();
+			
 			SoulBoundSaver.Initialize();
 			DamageIndicator.Initialize(Damages.GetRendDamage);
 
@@ -109,6 +109,7 @@ namespace Aessmbly {
 			
 			if (Game.MapId == GameMapId.SummonersRift)
 			{
+				LoadSentinel();
 				GameObject.OnCreate += GameObject_OnCreate;
 			}
 		}
@@ -246,6 +247,11 @@ namespace Aessmbly {
 		}
 
 		private static void OnDraw(EventArgs args) {
+			if (Player.IsDead)
+			{
+				return;
+			}
+
 			if (Config.Item("drawQ").GetValue<bool>())
 			{
 				Render.Circle.DrawCircle(Player.Position, Q.Range, Color.Blue, 2);
@@ -313,6 +319,10 @@ namespace Aessmbly {
 		}
 
 		private static void Game_OnUpdate(EventArgs args) {
+			if (Player.IsDead)
+			{
+				return;
+			}
 
 			PermaActive();
 
@@ -368,7 +378,7 @@ namespace Aessmbly {
 
 				if (Config.Item("enabledW").GetValue<bool>()&& !Player.InBase() && W.IsReady() && Player.ManaPercent >= Config.Item("mana").GetValue<Slider>().Value && !Player.IsRecalling())
 				{
-					if (!Config.Item("noMode").GetValue<bool>() || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.None)
+					if (!Config.Item("noMode").GetValue<bool>() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.None)
 					{
 						if (OpenLocations.Count > 0 && SentLocation == null)
 						{
