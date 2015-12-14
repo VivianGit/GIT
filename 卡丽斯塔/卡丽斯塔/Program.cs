@@ -8,6 +8,7 @@ using LeagueSharp.Common;
 using SharpDX;
 using Color = System.Drawing.Color;
 using Unit = LeagueSharp.Common.CustomEvents.Unit;
+using SharpDX.Direct3D9;
 
 namespace Aessmbly {
 	class Program {
@@ -15,9 +16,14 @@ namespace Aessmbly {
 		private static readonly Vector2 BarOffset = new Vector2(-9, 11);
 		private const int LineThickness = 9;
 		public static Color DrawingColor = Color.Green;
+		private static FontDescription fontDescription;
+		
+		private static Font DamageFont;
+		private static Color _color;
+		private static ColorBGRA DamageFontColor;
 
 		#region SentineData
-		
+
 		private enum SentinelLocations {
 			Baron,
 			Dragon,
@@ -88,6 +94,11 @@ namespace Aessmbly {
 		private static void Game_OnStart(EventArgs args) {
 			if (Player.ChampionName != "Kalista") return;
 
+			fontDescription = new FontDescription { FaceName = "微软雅黑", Height = 38 };
+			DamageFont = new Font(Drawing.Direct3DDevice, fontDescription);
+			_color = Color.YellowGreen;
+			DamageFontColor = new ColorBGRA(_color.B, _color.G, _color.R, 0);
+
 			Game.PrintChat(
 				"卡丽斯塔".ToHtml("#AAAAFF", FontStlye.Bold)
 				+ " - "
@@ -95,9 +106,13 @@ namespace Aessmbly {
 
 			LoadMenu();
 			LoadSpell();
-			
+
+			Utility.HpBarDamageIndicator.Enabled = true;
+			//Utility.HpBarDamageIndicator.Color = Color.White;
+            Utility.HpBarDamageIndicator.DamageToUnit = Damages.GetRendDamage;
+
 			SoulBoundSaver.Initialize();
-			DamageIndicator.Initialize(Damages.GetRendDamage);
+			//DamageIndicator.Initialize(Damages.GetRendDamage);
 
 			Spellbook.OnCastSpell += OnCastSpell;
 			Drawing.OnDraw += OnDraw;
@@ -105,13 +120,54 @@ namespace Aessmbly {
 			Orbwalking.OnNonKillableMinion += Orbwalking_OnNonKillableMinion;
 			Orbwalking.AfterAttack += Orbwalking_AfterAttack;
 			Unit.OnDash += Unit_OnDash;
-
+			Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
 			
 			if (Game.MapId == GameMapId.SummonersRift)
 			{
 				LoadSentinel();
 				GameObject.OnCreate += GameObject_OnCreate;
 			}
+		}
+
+		public static bool CastOKTW(Obj_AI_Hero target, OKTWPrediction.HitChance hitChance) {
+			var spell =  Q;
+			OKTWPrediction.SkillshotType CoreType2 = OKTWPrediction.SkillshotType.SkillshotLine;
+			bool aoe2 = false;
+
+			var predInput2 = new OKTWPrediction.PredictionInput
+			{
+				Aoe = aoe2,
+				Collision = spell.Collision,
+				Speed = spell.Speed,
+				Delay = spell.Delay,
+				Range = spell.Range,
+				From = Player.ServerPosition,
+				Radius = spell.Width,
+				Unit = target,
+				Type = CoreType2
+			};
+			var poutput2 = OKTWPrediction.Prediction.GetPrediction(predInput2);
+
+			if (spell.Speed != float.MaxValue && OKTWPrediction.CollisionYasuo(Player.ServerPosition, poutput2.CastPosition))
+				return false;
+
+			if (poutput2.Hitchance >= hitChance)
+			{
+				return spell.Cast(poutput2.CastPosition);
+			}
+			return false;
+		}
+
+		private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args) {
+			#region 亚索风墙
+			if (sender.IsEnemy && args.SData.Name == "YasuoWMovingWall")
+			{
+				OKTWPrediction.yasuoWall.CastTime = Game.Time;
+				OKTWPrediction.yasuoWall.CastPosition = sender.Position.Extend(args.End, 400);
+				OKTWPrediction.yasuoWall.YasuoPosition = sender.Position;
+				OKTWPrediction.yasuoWall.WallLvl = sender.Spellbook.Spells[1].Level;
+			}
+			#endregion
 		}
 
 		private static void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args) {
@@ -169,8 +225,7 @@ namespace Aessmbly {
 
 		private static void Drawing_OnEndScene(EventArgs args) {
 			var PercentEnabled = Config.Item("percent").GetValue<bool>();
-			var HealthbarEnabled = Config.Item("healthbar").GetValue<bool>();
-			if (HealthbarEnabled || PercentEnabled)
+			if (PercentEnabled)
 			{
 				foreach (var unit in HeroManager.Enemies.Where(u => u.IsValidTarget() ))
 				{
@@ -180,68 +235,34 @@ namespace Aessmbly {
 					{
 						continue;
 					}
-
-					if (HealthbarEnabled)
-					{
-						var damagePercentage = ((unit.TotalShieldHealth() - damage) > 0 ? (unit.TotalShieldHealth() - damage) : 0) /
-											   (unit.MaxHealth + unit.AllShield + unit.PhysicalShield + unit.MagicalShield);
-						var currentHealthPercentage = unit.TotalShieldHealth() / (unit.MaxHealth + unit.AllShield + unit.PhysicalShield + unit.MagicalShield);
-
-						var startPoint = new Vector2((int)(unit.HPBarPosition.X + BarOffset.X + damagePercentage * BarWidth), (int)(unit.HPBarPosition.Y + BarOffset.Y) - 5);
-						var endPoint = new Vector2((int)(unit.HPBarPosition.X + BarOffset.X + currentHealthPercentage * BarWidth) + 1, (int)(unit.HPBarPosition.Y + BarOffset.Y) - 5);
-
-						Drawing.DrawLine(startPoint, endPoint, LineThickness, DrawingColor);
-					}
-
 					if (PercentEnabled)
 					{
 						Drawing.DrawText(unit.HPBarPosition.X, unit.HPBarPosition.Y,
-							Color.MediumVioletRed, 
+							Color.MediumVioletRed,
 							string.Concat(Math.Ceiling((damage / unit.TotalShieldHealth()) * 100), "%"), 10);
 					}
+
 				}
 			}
 		}
 
 		private static void DrawDamage() {
-			var PercentEnabled = Config.Item("percent").GetValue<bool>();
-			var HealthbarEnabled = Config.Item("healthbar").GetValue<bool>();
-			if (HealthbarEnabled || PercentEnabled)
+			
+			if (Config.Item("percent").GetValue<bool>())
 			{
-				//
 				foreach (var unit in HeroManager.Enemies.Where(u => u.IsValidTarget() && u.IsHPBarRendered))
 				{
-					// Get damage to unit
 					var damage = Damages.GetRendDamage(unit);
-
-					// Continue on 0 damage
 					if (damage <= 0)
 					{
 						continue;
 					}
-
-					if (HealthbarEnabled)
-					{
-						// Get remaining HP after damage applied in percent and the current percent of health
-						var damagePercentage = ((unit.TotalShieldHealth() - damage) > 0 ? (unit.TotalShieldHealth() - damage) : 0) /
-											   (unit.MaxHealth + unit.AllShield + unit.PhysicalShield + unit.MagicalShield);
-						var currentHealthPercentage = unit.TotalShieldHealth() / (unit.MaxHealth + unit.AllShield + unit.PhysicalShield + unit.MagicalShield);
-
-						// Calculate start and end point of the bar indicator
-						var startPoint = new Vector2((int)(unit.HPBarPosition.X + BarOffset.X + damagePercentage * BarWidth), (int)(unit.HPBarPosition.Y + BarOffset.Y) - 5);
-						var endPoint = new Vector2((int)(unit.HPBarPosition.X + BarOffset.X + currentHealthPercentage * BarWidth) + 1, (int)(unit.HPBarPosition.Y + BarOffset.Y) - 5);
-
-						// Draw the line
-						Drawing.DrawLine(startPoint, endPoint, LineThickness, DrawingColor);
-					}
-
-					if (PercentEnabled)
-					{
-						// Get damage in percent and draw next to the health bar
-						Drawing.DrawText(unit.HPBarPosition.X, unit.HPBarPosition.Y,
-							Color.MediumVioletRed,
-							string.Concat(Math.Ceiling((damage / unit.TotalShieldHealth()) * 100), "%"), 10);
-					}
+					
+					DamageFont.DrawText(null, string.Concat(Math.Ceiling((damage / unit.TotalShieldHealth()) * 100), "%"),
+							
+							(int)Drawing.WorldToScreen(unit.Position).X + 10,
+							(int)Drawing.WorldToScreen(unit.Position).Y - 20,
+							DamageFontColor);
 				}
 			}
 		}
@@ -268,7 +289,7 @@ namespace Aessmbly {
 			}
 			#endregion
 
-			//DrawDamage();
+			DrawDamage();
         }
 
 		private static void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target) {
@@ -280,7 +301,7 @@ namespace Aessmbly {
 				var hero = target as Obj_AI_Hero;
 				if (hero != null && Player.GetAutoAttackDamage(hero) < hero.Health + hero.AllShield + hero.PhysicalShield)
 				{
-					Q.Cast(hero);
+					CastOKTW(hero, OKTWPrediction.HitChance.VeryHigh);
 				}
 			}
 		}
@@ -361,8 +382,13 @@ namespace Aessmbly {
 								: entry.Key == GameObjectTeam.Chaos
 									? "红BUFF处"
 									: "河道"), " (", activeSentinel.Key, ")"));
-						Utill.Print(pingstring);
-                        Game.ShowPing(PingCategory.Fallback, activeSentinel.Value.Position, true);
+
+						Game.PrintChat(
+							"卡丽斯塔".ToHtml("#AAAAFF", FontStlye.Bold)
+							+ " - "
+							+ pingstring.ToHtml(Color.Yellow));
+
+						Game.ShowPing(PingCategory.Fallback, activeSentinel.Value.Position, true);
 					}
 
 					var invalid = entry.Value.Where(o => !o.Value.IsValid || o.Value.Health < 2 || o.Value.GetBuffCount("kalistaw") == 0).ToArray();
@@ -376,9 +402,9 @@ namespace Aessmbly {
 					}
 				}
 
-				if (Config.Item("enabledW").GetValue<bool>()&& !Player.InBase() && W.IsReady() && Player.ManaPercent >= Config.Item("mana").GetValue<Slider>().Value && !Player.IsRecalling())
+				if (Config.Item("enabledW").GetValue<bool>() && !Player.InBase() && W.IsReady() && Player.ManaPercent >= Config.Item("mana").GetValue<Slider>().Value && !Player.IsRecalling())
 				{
-					if (!Config.Item("noMode").GetValue<bool>() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.None)
+					if (Config.Item("noMode").GetValue<bool>() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.None)
 					{
 						if (OpenLocations.Count > 0 && SentLocation == null)
 						{
@@ -578,6 +604,15 @@ namespace Aessmbly {
 			}
 		}
 
+		private static int CountMeleeInRange(float range) {
+			int count = 0;
+			foreach (var target in HeroManager.Enemies.Where(target => target.IsValidTarget(range) && target.IsMelee))
+			{
+				count++;
+			}
+			return count;
+		}
+
 		private static void Combo() {
 			// Item usage
 			if (Config.Item("comboUseItems").GetValue<bool>() && (Orbwalker.GetTarget() is Obj_AI_Hero))
@@ -590,14 +625,30 @@ namespace Aessmbly {
 			if (target != null)
 			{
 				// Q usage
-				if (Q.IsReady() && Config.Item("comboUseQ").GetValue<bool>() && (!Config.Item("comboUseQAA").GetValue<bool>() || (Player.GetSpellDamage(target, SpellSlot.Q) > target.TotalShieldHealth() && !target.HasBuffOfType(BuffType.SpellShield))) &&
-					Player.ManaPercent >= Config.Item("comboUseQ").GetValue<Slider>().Value && Q.Cast(target)== Spell.CastStates.SuccessfullyCasted)
+				//if (Q.IsReady() && Config.Item("comboUseQ").GetValue<bool>()
+				//	&& (!Config.Item("comboUseQAA").GetValue<bool>() || (Player.GetSpellDamage(target, SpellSlot.Q) > target.TotalShieldHealth() && !target.HasBuffOfType(BuffType.SpellShield))) &&
+				//	Player.ManaPercent >= Config.Item("comboUseQ").GetValue<Slider>().Value && Q.Cast(target)== Spell.CastStates.SuccessfullyCasted)
+				//{
+				//	return;
+				//}
+				if (Q.IsReady() && Config.Item("comboUseQ").GetValue<bool>() && Player.Mana > E.ManaCost
+					)
 				{
-					return;
+					if (!Orbwalking.InAutoAttackRange(target) 
+						|| CountMeleeInRange(400) > 0
+						|| target.HasBuffOfType(BuffType.Stun) || target.HasBuffOfType(BuffType.Taunt))
+					{
+						CastOKTW(target,OKTWPrediction.HitChance.High);
+					}
+					if (Orbwalker.InAutoAttackRange(target) && Player.CalcDamage(target, Damage.DamageType.Magical, Damages.QDamage)+ Damages.GetRendDamage(target)>target.Health)
+					{
+						CastOKTW(target, OKTWPrediction.HitChance.VeryHigh);
+					}
 				}
 
+
 				// E usage
-				var buff = target.GetRendBuff();
+					var buff = target.GetRendBuff();
 				if (Config.Item("comboUseE").GetValue<bool>() && (E.Level>0 && E.IsReady()) && buff != null && E.IsInRange(target))
 				{
                     if (!Config.Item("killsteal").GetValue<bool>() && target.IsRendKillable() && E.Cast())
@@ -645,7 +696,8 @@ namespace Aessmbly {
 				var target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
 				if (target != null)
 				{
-					Q.Cast(target);
+					//Q.Cast(target);
+					CastOKTW(target, OKTWPrediction.HitChance.VeryHigh);
 				}
 			}
 		}
@@ -809,6 +861,13 @@ namespace Aessmbly {
 			Config.AddSubMenu(DrawMenu);
 
 			Config.AddToMainMenu();
+
+			Config.AddItem(new MenuItem("test", "test").SetValue(new KeyBind('S', 18, KeyBindType.Toggle))).ValueChanged += Program_ValueChanged; ;
+		}
+
+		private static void Program_ValueChanged(object sender, OnValueChangeEventArgs e) {
+			Console.WriteLine(Player.Position);
+			Game.PrintChat("当前位置是".ToHtml(Color.Gray)+ Player.Position);
 		}
 	}
 }
