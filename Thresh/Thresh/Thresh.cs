@@ -212,17 +212,18 @@ namespace Thresh {
 		}
 
 		private static void Flee() {
-			if (!Config.Item("逃跑").GetValue<KeyBind>().Active) return;
-
-			Player.IssueOrder(GameObjectOrder.MoveTo,Game.CursorPos);
-
-			if (Config.Item("E推人").GetValue<bool>())
+			if (Config.Item("逃跑").GetValue<KeyBind>().Active)
 			{
-				foreach (var enemy in HeroManager.Enemies.Where(e=>!e.IsDead && !e.HasBuffOfType(BuffType.SpellShield)))
+				Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+
+				if (Config.Item("E推人").GetValue<bool>())
 				{
-					if (E.CanCast(enemy))
+					foreach (var enemy in HeroManager.Enemies.Where(e => !e.IsDead && !e.HasBuffOfType(BuffType.SpellShield)))
 					{
-						E.Cast(enemy);
+						if (E.CanCast(enemy))
+						{
+							E.Cast(enemy);
+						}
 					}
 				}
 			}
@@ -599,11 +600,11 @@ namespace Thresh {
 
 			var DrawConfig = Config.AddSubMenu(new Menu("Drawing Settings", "显示设置"));
 			DrawConfig.AddItem(new MenuItem("技能可用才显示", "Draw when skill is ready").SetValue(true));
-			DrawConfig.AddItem(new MenuItem("显示Q", "Draw Q Range").SetValue(new Circle(true, Color.YellowGreen)));
-			DrawConfig.AddItem(new MenuItem("显示W", "Draw W Range").SetValue(new Circle(true, Color.Yellow)));
-			DrawConfig.AddItem(new MenuItem("显示E", "Draw E Range").SetValue(new Circle(true, Color.GreenYellow)));
-			DrawConfig.AddItem(new MenuItem("显示R", "Draw R Range").SetValue(new Circle(true, Color.LightGreen)));
-			DrawConfig.AddItem(new MenuItem("标识目标", "Draw Target").SetValue(new Circle(true, Color.Red)));
+			DrawConfig.AddItem(new MenuItem("显示Q", "Draw Q Range").SetValue(new Circle(false, Color.YellowGreen)));
+			DrawConfig.AddItem(new MenuItem("显示W", "Draw W Range").SetValue(new Circle(false, Color.Yellow)));
+			DrawConfig.AddItem(new MenuItem("显示E", "Draw E Range").SetValue(new Circle(false, Color.GreenYellow)));
+			DrawConfig.AddItem(new MenuItem("显示R", "Draw R Range").SetValue(new Circle(false, Color.LightGreen)));
+			DrawConfig.AddItem(new MenuItem("标识目标", "Draw Target").SetValue(new Circle(false, Color.Red)));
 
 			var SmartKeyConfig = Config.AddSubMenu(new Menu("Smart Cast", "智能施法"));
 			SmartKeyConfig.AddItem(new MenuItem("智能施法标签", "Enable Follow Options,Prss Q/W/E Auto Cast Spell"));
@@ -655,6 +656,7 @@ namespace Thresh {
 
 			foreach (var item in menus)
 			{
+
 				if (item is Menu)
 				{
 					var m = item as Menu;
@@ -674,31 +676,6 @@ namespace Thresh {
 					}
 				}
             }
-
-			//List<MenuItem> MenuItems = new List<MenuItem>();
-			//List<Menu> Menus = new List<Menu>();
-			//Menus.Add(Config);
-			//         foreach (var menu in Config.Children)
-			//{
-			//	Menus.Add(menu);
-			//	MenuItems.AddRange(menu.Items);
-			//}
-			//foreach (var item in Menus)
-			//{
-			//	var DisplayName = Language.Find(l => l.Key == item.Name).Value;
-			//	if (!string.IsNullOrEmpty(DisplayName))
-			//	{
-			//		item.DisplayName = DisplayName;
-			//	}
-			//}
-			//foreach (var item in MenuItems)
-			//{
-			//	var DisplayName = Language.Find(l => l.Key == item.Name).Value;
-			//	if (!string.IsNullOrEmpty(DisplayName))
-			//	{
-			//		item.DisplayName = DisplayName;
-			//	}
-			//}
 		}
 
 		private static List<object> GetSubMenus(Menu menu) {
