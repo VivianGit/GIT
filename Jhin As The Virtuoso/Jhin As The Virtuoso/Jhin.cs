@@ -26,7 +26,7 @@ namespace Jhin_As_The_Virtuoso {
 		public static Spell R { get; set; }
 		public static bool IsCastingR => R.Instance.Name == "JhinRShot";
 		public static Vector3 REndPos { get; private set; }
-		public static Dictionary<int,string> KillText { get; set; }
+		public static Dictionary<int, float> PingList { get; set; } = new Dictionary<int, float>();
 		public static List<Obj_AI_Hero> KillableList { get; set; } = new List<Obj_AI_Hero>();
 		public static int[] delay => new[] {
 				Config.Item("第一次延迟").GetValue<Slider>().Value,
@@ -47,6 +47,12 @@ namespace Jhin_As_The_Virtuoso {
 			if (Player.ChampionName!="Jhin")
 			{
 				return;
+			}
+
+			//初始化ping时间
+			foreach (var enemy in HeroManager.Enemies)
+			{
+				PingList.Add(enemy.NetworkId, 0);
 			}
 
 			LoadSpell();
@@ -110,7 +116,7 @@ namespace Jhin_As_The_Virtuoso {
 			if (sender.IsMe 
 				&& IsCastingR && Config.Item("禁止移动").GetValue<bool>()
 				&& Player.CountEnemiesInRange(Config.Item("禁止距离").GetValue<Slider>().Value) == 0
-				&& HeroManager.Enemies.Any(e => e.InRCone() && !e.IsDead && e.IsValid)
+				&& HeroManager.Enemies.Any(e => e.InRCone() && !e.IsDead && e.IsValid && e.IsVisible)
 			)
 			{
 				args.Process = false;
@@ -186,8 +192,13 @@ namespace Jhin_As_The_Virtuoso {
 		}
 
 		private static void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender, Interrupter2.InterruptableTargetEventArgs args) {
+			
 			if (Config.Item("打断E").GetValue<bool>() && sender.IsEnemy && E.CanCast(sender))
 			{
+				if (sender.ChampionName == "Thresh")
+				{
+					return;
+				}
 				E.Cast(sender);
 			}
 		}
@@ -399,9 +410,13 @@ namespace Jhin_As_The_Virtuoso {
 						KillableList.Add(enemy);
 					}
 
-					if (Config.Item("击杀信号提示").GetValue<bool>())
+					if (Config.Item("击杀信号提示").GetValue<bool>() && Game.Time - PingList[enemy.NetworkId]> 10 * 1000)
 					{
 						Game.ShowPing(PingCategory.AssistMe, enemy, true);
+						Game.ShowPing(PingCategory.AssistMe, enemy, true);
+						PingList[enemy.NetworkId] = Game.ClockTime;
+
+						//DeBug.Debug("击杀信号",$"信号目标 {enemy.ChampionName.ToCN()} 信号时间 {Game.ClockTime}", CNLib.DebugLevel.Info,CNLib.Output.Console,Config.Item("调试"));
 					}
 				}
 				else
@@ -429,12 +444,6 @@ namespace Jhin_As_The_Virtuoso {
 				RCharge.Target = null;
 			}
 			#endregion
-
-			//if (Config.Item("半手动R点射").GetValue<KeyBind>().Active)
-			//{
-			//	var p = Player.Position;
-			//	Console.WriteLine($"位置：new Vector3({p.X},{p.Y},{p.Z})");
-   //         }
 			
 			if (!IsCastingR)
 			{
@@ -766,6 +775,8 @@ namespace Jhin_As_The_Virtuoso {
 			Config = new Menu("戏命师 - 烬", "JhinAsTheVirtuoso", true);
 			Config.AddToMainMenu();
 
+			//Config.AddItem(new MenuItem("调试", "调试").SetValue(false));
+
 			var OMenu = Config.AddSubMenu(new Menu("走砍设置", "走砍设置"));
 			Orbwalker = new Orbwalking.Orbwalker(OMenu);
 
@@ -806,7 +817,7 @@ namespace Jhin_As_The_Virtuoso {
 			RMenu.AddItem(new MenuItem("击杀文本X", "文字提示横向位置").SetValue(new Slider(71)));
 			RMenu.AddItem(new MenuItem("击杀文本Y", "文字提示纵向位置").SetValue(new Slider(86)));
 			RMenu.AddItem(new MenuItem("击杀信号提示", "信号提示R可击杀目标(本地)").SetValue(true));
-			RMenu.AddItem(new MenuItem("击杀目标标识", "圆圈标记R可击杀目标").SetValue(new Circle(true, Color.Red)));
+			//RMenu.AddItem(new MenuItem("击杀目标标识", "圆圈标记R可击杀目标").SetValue(new Circle(true, Color.Red)));
 			RMenu.AddItem(new MenuItem("S2", ""));
 
 			RMenu.AddItem(new MenuItem("S3", "半手动R设置(自动R)")).SetFontStyle(FS.Bold, DXColor.Orange);
@@ -816,9 +827,9 @@ namespace Jhin_As_The_Virtuoso {
 			RMenu.AddItem(new MenuItem("第三次延迟", "第三次R后延迟(毫秒)").SetValue(new Slider(0, 0, 1000)));
 			RMenu.AddItem(new MenuItem("S4", ""));
 
-			RMenu.AddItem(new MenuItem("S5", "半手动R设置(点射)")).SetFontStyle(FS.Bold, DXColor.Orange);
-			RMenu.AddItem(new MenuItem("半手动R点射", "半手动R(点射)").SetValue(new KeyBind('T', KeyBindType.Press)));
-			RMenu.AddItem(new MenuItem("S6", ""));
+			//RMenu.AddItem(new MenuItem("S5", "半手动R设置(点射)")).SetFontStyle(FS.Bold, DXColor.Orange);
+			//RMenu.AddItem(new MenuItem("半手动R点射", "半手动R(点射)").SetValue(new KeyBind('T', KeyBindType.Press)));
+			//RMenu.AddItem(new MenuItem("S6", ""));
 
 			RMenu.AddItem(new MenuItem("R放眼","R时无视野放蓝眼").SetValue(true));
 
