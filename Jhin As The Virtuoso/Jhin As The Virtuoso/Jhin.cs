@@ -43,6 +43,7 @@ namespace Jhin_As_The_Virtuoso {
 		});
 		
 
+
 		internal static void OnLoad(EventArgs args) {
 			if (Player.ChampionName!="Jhin")
 			{
@@ -54,12 +55,13 @@ namespace Jhin_As_The_Virtuoso {
 			{
 				PingList.Add(enemy.NetworkId, 0);
 			}
-
+			
 			LoadSpell();
 			LoadMenu();
 			LoadEvents();
 
 			LastPosition.Load();
+			//DrawHelper.Load();
 
 			DamageIndicator.DamageToUnit = GetRDmg;
 		}
@@ -69,11 +71,11 @@ namespace Jhin_As_The_Virtuoso {
 			Drawing.OnDraw += Drawing_OnDraw;
 			Game.OnWndProc += Game_OnWndProc;
 			Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
-			Obj_AI_Base.OnDoCast += Obj_AI_Base_OnDoCast;
+			//Obj_AI_Base.OnDoCast += Obj_AI_Base_OnDoCast;
 			AntiGapcloser.OnEnemyGapcloser += AntiGapcloser_OnEnemyGapcloser;
 			Interrupter2.OnInterruptableTarget += Interrupter2_OnInterruptableTarget;
 			Obj_AI_Base.OnLevelUp += Obj_AI_Base_OnLevelUp;
-			Orbwalking.BeforeAttack += Orbwalking_BeforeAttack;
+			//Orbwalking.BeforeAttack += Orbwalking_BeforeAttack;
 			Orbwalking.AfterAttack += Orbwalking_AfterAttack;
 			Orbwalking.OnNonKillableMinion += Orbwalking_OnNonKillableMinion;
 			Obj_AI_Base.OnIssueOrder += Obj_AI_Base_OnIssueOrder;
@@ -84,10 +86,10 @@ namespace Jhin_As_The_Virtuoso {
 
 		private static void Game_OnChat(GameChatEventArgs args) {
 
-			if (Config.Item("击杀信号提示").GetValue<bool>() && args.Message.Contains(Player.Name) && args.Message.ToGBK().Contains("要求队友"))
-			{
-				args.Process = false;
-			}
+			//if (Config.Item("击杀信号提示").GetValue<bool>() && args.Message.Contains(Player.Name) && args.Message.ToGBK().Contains("要求队友"))
+			//{
+			//	args.Process = false;
+			//}
 		}
 
 		private static void Orbwalking_OnNonKillableMinion(AttackableUnit minion) {
@@ -144,34 +146,31 @@ namespace Jhin_As_The_Virtuoso {
 
 		private static void Orbwalking_BeforeAttack(Orbwalking.BeforeAttackEventArgs args) {
 			#region Q消耗
-			if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
-			{
-				var t = args.Target;
-				if (t != null)
-				{
-					if (t.Type != GameObjectType.obj_AI_Hero)
-					{
-						var enemy = t as Obj_AI_Base;
-						if (enemy.CountEnemiesInRange(200) > 0)
-						{
-							args.Process = false;
-							Q.Cast(enemy);
-						}
-					}
-				}
-			}
+			//if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
+			//{
+			//	var t = args.Target;
+			//	if (t?.Type == GameObjectType.obj_AI_Minion)
+			//	{
+			//		var enemy = t as Obj_AI_Base;
+			//		if (Q.CanCast(enemy) && enemy.CountEnemiesInRange(200) > 0)
+			//		{
+			//			args.Process = false;
+			//			Q.Cast(enemy);
+			//		}
+			//	}
+			//}
 			#endregion
 
-			//Q清兵
-			if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && Config.Item("清兵Q").GetValue<bool>())
-			{
-				var target = Orbwalker.GetTarget() as Obj_AI_Base;
-				if (target !=null && Q.CanCast(target) && Q.GetDmg(target)>target.Health && MinionManager.GetMinions(target.Position,200)?.Count>=2)
-				{
-					args.Process = false;
-					Q.Cast(target);
-				}
-			}
+			////Q清兵
+			//if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && Config.Item("清兵Q").GetValue<bool>())
+			//{
+			//	var target = Orbwalker.GetTarget() as Obj_AI_Base;
+			//	if (target !=null && Q.CanCast(target) && Q.GetDmg(target)>target.Health && MinionManager.GetMinions(target.Position,200)?.Count>=2)
+			//	{
+			//		args.Process = false;
+			//		Q.Cast(target);
+			//	}
+			//}
 		}
 
 		private static void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target) {
@@ -183,7 +182,7 @@ namespace Jhin_As_The_Virtuoso {
 			}
 
 			if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed 
-				&& target.Type == GameObjectType.obj_AI_Hero
+				&& target?.Type == GameObjectType.obj_AI_Hero
 				&& !target.IsDead && target.IsValidTarget(Q.Range) && Q.IsReady()
 				&& Config.Item("消耗Q").GetValue<bool>())
 			{
@@ -217,15 +216,15 @@ namespace Jhin_As_The_Virtuoso {
 
 				if (Q.Level == 0)
 				{
-					DelayLevels(Delay, SpellSlot.Q);
+					Player.Spellbook.LevelSpell(SpellSlot.Q);
 				}
 				else if (W.Level == 0)
 				{
-					DelayLevels(Delay, SpellSlot.W);
+					Player.Spellbook.LevelSpell(SpellSlot.W);
 				}
 				else if (E.Level == 0)
 				{
-					DelayLevels(Delay, SpellSlot.E);
+					Player.Spellbook.LevelSpell(SpellSlot.E);
 				}
 
 				if (Config.Item("加点方案").GetValue<StringList>().SelectedIndex == 0)//主Q副W
@@ -289,6 +288,23 @@ namespace Jhin_As_The_Virtuoso {
 		}
 
 		private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args) {
+			if (sender.IsMe)
+			{
+				if (args.SData.Name == "JhinRShotMis")
+				{
+
+					RCharge.Index++;
+					RCharge.CastT = Game.ClockTime;
+				}
+				if (args.SData.Name == "JhinRShotMis4")
+				{
+
+					RCharge.Index = 0;
+					RCharge.CastT = Game.ClockTime;
+					RCharge.Target = null;
+				}
+			}
+
 			if (sender.IsMe && args.SData.Name == "JhinR")
 			{
 				REndPos = args.End;
@@ -332,8 +348,6 @@ namespace Jhin_As_The_Virtuoso {
 				args.Process = false;
 			}
 
-			
-
 			if (!MenuGUI.IsChatOpen && args.WParam == Config.Item("半手动R自动").GetValue<KeyBind>().Key && !IsCastingR && R.IsReady() && RCharge.Target == null)
 			{
 				var t = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical);
@@ -359,43 +373,6 @@ namespace Jhin_As_The_Virtuoso {
 				return target;
 			}
 			return null;
-		}
-
-		private static void AutoR() {
-			Console.WriteLine("进入自动R");
-			if (RCharge.Target == null)
-			{
-				Console.WriteLine("没有R目标");
-				var t = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical);
-				if (t == null || !t.IsValid)
-				{
-					return;
-				}
-				R.Cast(OKTWPrediction.GetPrediction(t, R.Delay).CastPosition);
-				Console.WriteLine("开启R");
-			}
-			if (IsCastingR)
-			{
-				Console.WriteLine("已经开启了R");
-				var target = GetTargetInR();
-				if (target!=null && R.CastSpell(target))
-				{
-					
-					RCharge.Target = target;
-					RCharge.CastT = Game.ClockTime;
-					RCharge.Index++;
-
-					Console.WriteLine($"目标{RCharge.Target.Name}\n 上次施放时间{RCharge.CastT}\n 第{RCharge.Index}次R\n是否要放大{RCharge.TapKeyPressed}\n==============");
-				}
-			}
-			else
-			{
-				RCharge.Target = null;
-				RCharge.TapKeyPressed = false;
-				RCharge.Index = 0;
-				Console.WriteLine($"目标{RCharge.Target.Name}\n 上次施放时间{RCharge.CastT}\n 第{RCharge.Index}次R\n是否要放大{RCharge.TapKeyPressed}\n==============");
-			}
-			
 		}
 
 		private static void Game_OnUpdate(EventArgs args) {
@@ -484,7 +461,7 @@ namespace Jhin_As_The_Virtuoso {
 			}
 			#endregion
 			//清兵
-			if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
+			if (Config.Item("清兵E").GetValue<bool>() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
 			{
 				var minions = MinionManager.GetMinions(E.Range + E.Width,MinionTypes.All,MinionTeam.Enemy,MinionOrderTypes.MaxHealth);
 				if (minions?.Count>5)
@@ -501,7 +478,7 @@ namespace Jhin_As_The_Virtuoso {
 
 		private static void WLogic() {
 			#region W逻辑
-			foreach (var enemy in HeroManager.Enemies.Where(e => e.IsValid && !e.IsDead && e.Distance(Player) < W.Range))
+			foreach (var enemy in HeroManager.Enemies.Where(e => e.IsValid && !e.IsDead && e.Distance(Player) < W.Range).OrderByDescending(k => k.Distance(Player)).OrderByDescending(k => k.Health))
 			{
 				if (Config.Item("标记W").GetValue<bool>()
 					&& (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
@@ -516,7 +493,7 @@ namespace Jhin_As_The_Virtuoso {
 					W.CastSpell(enemy);
 				}
 
-				if (Config.Item("抢人头W").GetValue<bool>() && enemy.Health < OktwCommon.GetKsDamage(enemy, W)
+				if (Config.Item("抢人头W").GetValue<bool>() && Player.CountEnemiesInRange(Player.AttackRange+100) == 0 && enemy.Health < OktwCommon.GetIncomingDamage(enemy,W.Delay) + OktwCommon.GetKsDamage(enemy, W)
 					&& !Q.CanCast(enemy) && !(Orbwalking.CanAttack() && Orbwalking.InAutoAttackRange(enemy)))
 				{
 					W.CastSpell(enemy);
@@ -529,21 +506,31 @@ namespace Jhin_As_The_Virtuoso {
 		private static void QLogic() {
 			#region Q逻辑
 			//Q消耗
-			//if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
-			//{
-			//	var t = Orbwalker.GetTarget();
-			//	if (t != null)
-			//	{
-			//		if (t.Type == GameObjectType.obj_AI_Hero)
-			//		{
-			//			var enemy = t as Obj_AI_Hero;
-			//			if (Config.Item("消耗Q").GetValue<bool>() && Q.CanCast(enemy))
-			//			{
-			//				Q.Cast(enemy);
-			//			}
-			//		}
-			//	}
-			//}
+			if (Config.Item("消耗Q兵").GetValue<bool>() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
+			{
+				var ms = MinionManager.GetMinions(Q.Range);
+				if (ms!=null && ms.Count>0)
+				{
+					var t = ms.Find(m => Q.GetDmg(m) > m.Health && m.CountEnemiesInRange(200) > 0);
+					if (t != null)
+					{
+						Q.Cast(t);
+					}
+				}
+			}
+
+			if (Config.Item("清兵Q").GetValue<bool>() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
+			{
+				var ms = MinionManager.GetMinions(Q.Range);
+				if (ms != null && ms.Count>=3)
+				{
+					var t = ms.Find(m => Q.GetDmg(m) > m.Health);
+					if (t != null)
+					{
+						Q.Cast(t);
+					}
+				}
+			}
 
 			if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
 			{
@@ -555,7 +542,7 @@ namespace Jhin_As_The_Virtuoso {
 			}
 
 			//Q抢人头
-			foreach (var enemy in HeroManager.Enemies.Where(e => e.IsValidTarget(Q.Range) && Q.GetDmg(e) > e.Health))
+			foreach (var enemy in HeroManager.Enemies.Where(e => e.IsValidTarget(Q.Range) && Q.GetDmg(e) + OktwCommon.GetIncomingDamage(e,Q.Delay) > e.Health))
 			{
 				Q.Cast(enemy);
 			}
@@ -579,59 +566,45 @@ namespace Jhin_As_The_Virtuoso {
 
 			if (IsCastingR)
 			{
-				if (Config.Item("R放眼").GetValue<bool>()
-					&& (ScryingOrb.IsReady())
-					&& RCharge.Target != null && !RCharge.Target.IsDead && !RCharge.Target.IsVisible)
+				if (Config.Item("R放眼").GetValue<bool>() && ScryingOrb.IsReady())
 				{
-					var bushList = VectorHelper.GetBushInRCone();
-					var lp = VectorHelper.GetLastPositionInRCone().Find(l => l.Hero == RCharge.Target);
-					if (bushList?.Count > 0)
+					var pistionList = VectorHelper.GetLastPositionInRCone().Where(m => !m.Hero.IsVisible && !m.Hero.IsDead && Game.ClockTime - m.LastSeen < 7 * 1000).OrderByDescending(m => m.LastSeen);
+
+					if (RCharge.Target == null && pistionList.Count() > 0)
 					{
-						if (lp != null)
+						var MissPosition = pistionList.First();
+						var MostNearBush = VectorHelper.GetBushNearPosotion(MissPosition.LastPosition);
+						if (MostNearBush != Vector3.Zero && MostNearBush.Distance(MissPosition.LastPosition) < 500)
 						{
-							var bush = VectorHelper.GetBushNearPosotion(lp.LastPosition, bushList);
-							ScryingOrb.Cast(bush);
+							ScryingOrb.Cast(MostNearBush);
 						}
 						else
 						{
-							var bush = VectorHelper.GetBushNearPosotion(REndPos, bushList);
-							ScryingOrb.Cast(bush);
+							ScryingOrb.Cast(MissPosition.LastPosition);
 						}
-
 					}
-					else if (lp != null)
+					else if (RCharge.Target != null && !RCharge.Target.IsVisible && !RCharge.Target.IsDead)
 					{
-						ScryingOrb.Cast(lp.LastPosition);
+						var RTargetLastPosition = pistionList?.Find(m => m.Hero == RCharge.Target && Game.ClockTime - m.LastSeen < 3 * 1000);
+						if (RTargetLastPosition != null)
+						{
+							var MostNearBush = VectorHelper.GetBushNearPosotion(RTargetLastPosition.LastPosition);
+							if (MostNearBush.Distance(RTargetLastPosition.LastPosition) < 500)
+							{
+								ScryingOrb.Cast(MostNearBush);
+							}
+							else
+							{
+								ScryingOrb.Cast(RTargetLastPosition.LastPosition);
+							}
+						}
 					}
 				}
-				/**
-				if (Config.Item("R放眼").GetValue<bool>()
-					&& (BlueTrinket.IsReady() || ScryingOrb.IsReady())
-					&& RCharge.Target != null && !RCharge.Target.IsDead && !RCharge.Target.IsVisible)
-				{
-					Game.PrintChat("进草眼".ToUTF8());
-					Game.PrintChat("目标位置".ToUTF8() + RCharge.Target.Position);
-					var bushList = VectorHelper.GetBushInRCone();
-					if (bushList?.Count > 0 )
-					{
-						var bush = VectorHelper.GetBushNearPosotion(RCharge.Target.Position, bushList);
-						if (bush == Vector3.Zero)
-						{
-							BlueTrinket.Cast(RCharge.Target.Position);
-							ScryingOrb.Cast(RCharge.Target.Position);
-						}
-						else
-						{
-							BlueTrinket.Cast(bush);
-							ScryingOrb.Cast(bush);
-						}
-
-					}
-				}
-	*/
+				
 				var target = GetTargetInR();
 				if (target != null)
 				{
+					#region 使用R，并记录R目标和施放时间
 					if (RCharge.Index == 0)
 					{
 						if (R.CastSpell(target))
@@ -649,37 +622,134 @@ namespace Jhin_As_The_Virtuoso {
 							}
 						});
 					}
-				}
-				else
-				{
-					if (Config.Item("R放眼").GetValue<bool>()
-						&& (BlueTrinket.IsReady() || ScryingOrb.IsReady())
-						&& RCharge.Target != null && !RCharge.Target.IsDead)
-					{
-						var bushList = VectorHelper.GetBushInRCone();
-						var lp = VectorHelper.GetLastPositionInRCone().Find(l => l.Hero == RCharge.Target);
-						if (bushList?.Count > 0)
-						{
-							if (lp != null)
-							{
-								var bush = VectorHelper.GetBushNearPosotion(lp.LastPosition, bushList);
-								ScryingOrb.Cast(bush);
-							}
-							else
-							{
-								var bush = VectorHelper.GetBushNearPosotion(REndPos, bushList);
-								ScryingOrb.Cast(bush);
-							}
-
-						}
-						else if (lp != null)
-						{
-							ScryingOrb.Cast(lp.LastPosition);
-						}
-					}
+					#endregion
 				}
 			}
 
+			#region 旧方法，屏
+			//		if (IsCastingR)
+			//		{
+			//			if (Config.Item("R放眼").GetValue<bool>()
+			//				&& ScryingOrb.IsReady()
+			//				&& RCharge.Target != null && !RCharge.Target.IsDead && !RCharge.Target.IsVisible)
+			//			{
+			//				var bushList = VectorHelper.GetBushInRCone();
+			//				var pistionList = VectorHelper.GetLastPositionInRCone().OrderBy(m => m.LastSeen);
+
+			//				var RTargetLastPosition = pistionList?.Find(m => m.Hero == RCharge.Target && Game.ClockTime - m.LastSeen < 3 * 1000);
+			//				//如果R中有R目标的最后位置
+			//				if (RTargetLastPosition!= null)
+			//				{
+			//					var MostNearBush = VectorHelper.GetBushNearPosotion(RTargetLastPosition.LastPosition, bushList);
+			//					if (MostNearBush.Distance(RTargetLastPosition.LastPosition) < 500)
+			//					{
+			//						ScryingOrb.Cast(MostNearBush);
+			//					}
+			//					else
+			//					{
+			//						ScryingOrb.Cast(RTargetLastPosition.LastPosition);
+			//					}
+			//				}
+
+			//			}
+			//			/**
+			//			//var lp = VectorHelper.GetLastPositionInRCone().Find(l => l.Hero == RCharge.Target);
+			//			//if (bushList?.Count > 0)
+			//			//{
+			//			//	if (lp != null)
+			//			//	{
+			//			//		var bush = VectorHelper.GetBushNearPosotion(lp.LastPosition, bushList);
+			//			//		ScryingOrb.Cast(bush);
+			//			//	}
+			//			//	else
+			//			//	{
+			//			//		var bush = VectorHelper.GetBushNearPosotion(REndPos, bushList);
+			//			//		ScryingOrb.Cast(bush);
+			//			//	}
+
+			//			//}
+			//			//else if (lp != null)
+			//			//{
+			//			//	ScryingOrb.Cast(lp.LastPosition);
+			//			//}
+			//			*/
+
+			//			/**
+			//			if (Config.Item("R放眼").GetValue<bool>()
+			//				&& (BlueTrinket.IsReady() || ScryingOrb.IsReady())
+			//				&& RCharge.Target != null && !RCharge.Target.IsDead && !RCharge.Target.IsVisible)
+			//			{
+			//				Game.PrintChat("进草眼".ToUTF8());
+			//				Game.PrintChat("目标位置".ToUTF8() + RCharge.Target.Position);
+			//				var bushList = VectorHelper.GetBushInRCone();
+			//				if (bushList?.Count > 0 )
+			//				{
+			//					var bush = VectorHelper.GetBushNearPosotion(RCharge.Target.Position, bushList);
+			//					if (bush == Vector3.Zero)
+			//					{
+			//						BlueTrinket.Cast(RCharge.Target.Position);
+			//						ScryingOrb.Cast(RCharge.Target.Position);
+			//					}
+			//					else
+			//					{
+			//						BlueTrinket.Cast(bush);
+			//						ScryingOrb.Cast(bush);
+			//					}
+
+			//				}
+			//			}
+			//*/
+			//			var target = GetTargetInR();
+			//			if (target != null)
+			//			{
+			//				if (RCharge.Index == 0)
+			//				{
+			//					if (R.CastSpell(target))
+			//					{
+			//						RCharge.Target = target;
+			//					}
+			//				}
+			//				else
+			//				{
+			//					Utility.DelayAction.Add(delay[RCharge.Index - 1], () =>
+			//					{
+			//						if (R.CastSpell(target))
+			//						{
+			//							RCharge.Target = target;
+			//						}
+			//					});
+			//				}
+			//			}
+			//			else
+			//			{
+			//				if (Config.Item("R放眼").GetValue<bool>()
+			//					&& (BlueTrinket.IsReady() || ScryingOrb.IsReady())
+			//					&& RCharge.Target != null && !RCharge.Target.IsDead)
+			//				{
+			//					var bushList = VectorHelper.GetBushInRCone();
+			//					var lp = VectorHelper.GetLastPositionInRCone().Find(l => l.Hero == RCharge.Target);
+			//					if (bushList?.Count > 0)
+			//					{
+			//						if (lp != null)
+			//						{
+			//							var bush = VectorHelper.GetBushNearPosotion(lp.LastPosition, bushList);
+			//							ScryingOrb.Cast(bush);
+			//						}
+			//						else
+			//						{
+			//							var bush = VectorHelper.GetBushNearPosotion(REndPos, bushList);
+			//							ScryingOrb.Cast(bush);
+			//						}
+
+			//					}
+			//					else if (lp != null)
+			//					{
+			//						ScryingOrb.Cast(lp.LastPosition);
+			//					}
+			//				}
+			//			}
+			//		}
+			#endregion
 			#endregion
 		}
 
@@ -724,13 +794,12 @@ namespace Jhin_As_The_Virtuoso {
 			DamageIndicator.Color = ShowD.Color;
 
 			var ShowT = Config.Item("击杀文本提示").GetValue<Circle>();
-			//if (ShowT.Active && KillableList?.Count > 0)
 			if (ShowT.Active && KillableList?.Count > 0)
 			{
 				var killname = "R击杀名单\n";
 				foreach (var k in KillableList)
 				{
-					killname += k.Name.ToGBK() + $"({k.ChampionName})\n";
+					killname += (k.Name + "　").ToGBK() + $"({k.ChampionName})\n";
                 }
 
 				var KillTextColor = new ColorBGRA
@@ -752,7 +821,8 @@ namespace Jhin_As_The_Virtuoso {
 			//{
 			//	foreach (var enemy in KillableList)
 			//	{
-			//		Render.Circle.DrawCircle(enemy.Position, 40, ShowK.Color, 200,true);
+			//		Render.Circle.DrawCircle(enemy.Position, 40, ShowK.Color, 200, true);
+			//		DrawHelper.DrawFillCircle(enemy, ShowK.Color);
 			//	}
 			//}
 		}
@@ -770,7 +840,7 @@ namespace Jhin_As_The_Virtuoso {
 
 		private static void LoadMenu() {
 
-			Game.PrintChat("戏命师—烬　".ToHtml(25)+"此刻,大美将致!".ToHtml(Color.Purple,FontStlye.Cite));
+			Game.PrintChat("戏命师—烬　".ToHtml(25)+"此刻,大美将致!".ToHtml(Color.PowderBlue,FontStlye.Cite));
 
 			Config = new Menu("戏命师 - 烬", "JhinAsTheVirtuoso", true);
 			Config.AddToMainMenu();
@@ -784,7 +854,7 @@ namespace Jhin_As_The_Virtuoso {
 			var QMenu = Config.AddSubMenu(new Menu("Q设置","Q设置"));
 			QMenu.AddItem(new MenuItem("消耗Q兵", "可Q死小兵时消耗").SetValue(true));
 			QMenu.AddItem(new MenuItem("消耗Q","一直用Q消耗").SetValue(true));
-			QMenu.AddItem(new MenuItem("清兵Q","使用Q清兵").SetValue(true));
+			QMenu.AddItem(new MenuItem("清兵Q", "使用Q清兵").SetValue(true));
 			QMenu.AddItem(new MenuItem("补刀Q", "使用Q补刀").SetValue(false));
 			QMenu.AddItem(new MenuItem("抢人头Q", "Q抢人头").SetValue(true));
 
@@ -804,6 +874,7 @@ namespace Jhin_As_The_Virtuoso {
 			EMenu.AddItem(new MenuItem("打断E", "自动E持续技能敌人").SetValue(true));
 			EMenu.AddItem(new MenuItem("探草E", "敌人进草自动E").SetValue(true));
 			EMenu.AddItem(new MenuItem("位移E", "敌人位移到看不到的地方E").SetValue(true));
+			EMenu.AddItem(new MenuItem("清兵E", "使用E清兵").SetValue(true));
 
 			//R菜单
 			var RMenu = Config.AddSubMenu(new Menu("R设置", "R设置"));
@@ -817,7 +888,7 @@ namespace Jhin_As_The_Virtuoso {
 			RMenu.AddItem(new MenuItem("击杀文本X", "文字提示横向位置").SetValue(new Slider(71)));
 			RMenu.AddItem(new MenuItem("击杀文本Y", "文字提示纵向位置").SetValue(new Slider(86)));
 			RMenu.AddItem(new MenuItem("击杀信号提示", "信号提示R可击杀目标(本地)").SetValue(true));
-			//RMenu.AddItem(new MenuItem("击杀目标标识", "圆圈标记R可击杀目标").SetValue(new Circle(true, Color.Red)));
+			RMenu.AddItem(new MenuItem("击杀目标标识", "圆圈标记R可击杀目标").SetValue(new Circle(true, Color.Red)));
 			RMenu.AddItem(new MenuItem("S2", ""));
 
 			RMenu.AddItem(new MenuItem("S3", "半手动R设置(自动R)")).SetFontStyle(FS.Bold, DXColor.Orange);
@@ -838,7 +909,7 @@ namespace Jhin_As_The_Virtuoso {
 			MMenu.AddItem(new MenuItem("S10", "自动加点设置")).SetFontStyle(FS.Bold, DXColor.Orange);
 			MMenu.AddItem(new MenuItem("自动点大", "只自动学大").SetValue(true));
 			MMenu.AddItem(new MenuItem("自动加点", "自动加点").SetValue(false));
-			MMenu.AddItem(new MenuItem("加点等级", "从几级开始加点").SetValue(new Slider(3,1,6)));
+			MMenu.AddItem(new MenuItem("加点等级", "从几级开始加点").SetValue(new Slider(2,1,6)));
 			MMenu.AddItem(new MenuItem("加点延迟", "加点延迟").SetValue(new Slider(700, 0, 2000)));
 			MMenu.AddItem(new MenuItem("加点方案", "加点方案").SetValue(
 				new StringList(new[] {"主Q副W","主Q副E","主W副Q","主W副E","主E副Q","主E副W"})));
