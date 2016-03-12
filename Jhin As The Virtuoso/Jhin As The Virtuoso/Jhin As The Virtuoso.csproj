@@ -42,6 +42,9 @@
     <Reference Include="LeagueSharp.Common">
       <HintPath>C:\Program Files (x86)\LeagueSharp\System\LeagueSharp.Common.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>C:\Program Files (x86)\LeagueSharp\System\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="SebbyLib">
       <HintPath>C:\Program Files (x86)\LeagueSharp\System\SebbyLib.dll</HintPath>
     </Reference>
@@ -54,6 +57,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -62,12 +66,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CNLib\DeBug.cs" />
+    <Compile Include="CNLib\DrawingsHerlper.cs" />
+    <Compile Include="CNLib\Enums.cs" />
+    <Compile Include="CNLib\MenuExtensions.cs" />
+    <Compile Include="CNLib\HeroName.cs" />
+    <Compile Include="CNLib\MultiLanguage.cs" />
+    <Compile Include="CNLib\Storage.cs" />
+    <Compile Include="CNLib\StoragePair.cs" />
+    <Compile Include="CNLib\TextExtensions.cs" />
+    <Compile Include="CNLib\VectorHelper.cs" />
     <Compile Include="DamageIndicator.cs" />
-    <Compile Include="DrawHelper.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Jhin.cs" />
     <Compile Include="LastPosition.cs" />
+    <Compile Include="MultiLanguage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RCharge.cs" />

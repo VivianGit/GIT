@@ -12,11 +12,12 @@ using Color = System.Drawing.Color;
 using OKTWPrediction = SebbyLib.Prediction.Prediction;
 using FS = System.Drawing.FontStyle;
 using SharpDX.Direct3D9;
+using CNLib;
 
 namespace Jhin_As_The_Virtuoso {
 
 	class Jhin {
-		public static Menu Config {get;set;}
+		public static Menu Config { get; set; } = new Menu("","",true);
 		public static Obj_AI_Hero Player => HeroManager.Player;
 		public static Orbwalking.Orbwalker Orbwalker { get; private set; }
 		public static Spell Q { get; set; }
@@ -41,30 +42,43 @@ namespace Jhin_As_The_Virtuoso {
 			 Height = 28,
 			 FaceName = "Microsoft YaHei",
 		});
-		
 
+		public static Storage storage { get; set; }  = new Storage("Jhin As The Virtuoso 1");
+		public static bool IsChinese { get; set; } = false;
 
 		internal static void OnLoad(EventArgs args) {
-			if (Player.ChampionName!="Jhin")
-			{
-				return;
-			}
+			if (Player.ChampionName!="Jhin"){ return; }
 
+			IsChinese = (LeagueSharp.Common.Config.SelectedLanguage == "Chinese") || (
+				string.IsNullOrEmpty(LeagueSharp.Common.Config.SelectedLanguage) &&
+				storage.ReadFile() == "Chinese"
+				);
+			CNLib.MultiLanguage.SetLanguage(IsChinese ? "Chinese" : "English");
+			CNLib.MultiLanguage.Load(MultiLanguage.EnglishDictionary);
+
+			LoadSpell();
+			LoadMenu();
+			LoadEvents();
+			LastPosition.Load();
 			//初始化ping时间
 			foreach (var enemy in HeroManager.Enemies)
 			{
 				PingList.Add(enemy.NetworkId, 0);
 			}
-			
-			LoadSpell();
-			LoadMenu();
-			LoadEvents();
-
-			LastPosition.Load();
-			//DrawHelper.Load();
 
 			DamageIndicator.DamageToUnit = GetRDmg;
+
+			if (IsChinese)
+			{
+				Game.PrintChat("戏命师—烬　".ToHtml(25) + "此刻,大美将致!".ToHtml(Color.PowderBlue, FontStlye.Cite));
+			}
+			else
+			{
+				Game.PrintChat("Jhin As The Virtuoso　".ToHtml(25) + "Art requires a certain cruelty!".ToHtml(Color.Purple, FontStlye.Cite));
+			}
 		}
+
+		
 
 		private static void LoadEvents() {
 			Game.OnUpdate += Game_OnUpdate;
@@ -80,16 +94,6 @@ namespace Jhin_As_The_Virtuoso {
 			Orbwalking.OnNonKillableMinion += Orbwalking_OnNonKillableMinion;
 			Obj_AI_Base.OnIssueOrder += Obj_AI_Base_OnIssueOrder;
 			CustomEvents.Unit.OnDash += Unit_OnDash;
-			Game.OnChat += Game_OnChat;
-			
-		}
-
-		private static void Game_OnChat(GameChatEventArgs args) {
-
-			//if (Config.Item("击杀信号提示").GetValue<bool>() && args.Message.Contains(Player.Name) && args.Message.ToGBK().Contains("要求队友"))
-			//{
-			//	args.Process = false;
-			//}
 		}
 
 		private static void Orbwalking_OnNonKillableMinion(AttackableUnit minion) {
@@ -102,12 +106,12 @@ namespace Jhin_As_The_Virtuoso {
 		private static void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args) {
 			if (sender.IsEnemy)
 			{
-				if (Config.Item("位移E").GetValue<bool>() && E.IsReady() && args.EndPos.Distance(Player)<E.Range && NavMesh.IsWallOfGrass(args.EndPos.To3D(), 10))
+				if (Config.Item("位移E").GetValue<bool>() && Config.GetBool("EList" + sender.NetworkId) && E.IsReady() && args.EndPos.Distance(Player)<E.Range && NavMesh.IsWallOfGrass(args.EndPos.To3D(), 10))
 				{
 					E.Cast(args.EndPos);
 				}
 
-				if (Config.Item("位移W").GetValue<bool>() && W.IsReady() && (sender as Obj_AI_Hero).HasWBuff() && args.EndPos.Distance(Player) < W.Range && (!E.IsReady() || args.EndPos.Distance(Player) > E.Range ))
+				if (Config.Item("位移W").GetValue<bool>() && Config.GetBool("WList"+sender.NetworkId) && W.IsReady() && (sender as Obj_AI_Hero).HasWBuff() && args.EndPos.Distance(Player) < W.Range && (!E.IsReady() || args.EndPos.Distance(Player) > E.Range ))
 				{
 					W.Cast(args.EndPos);
 				}
@@ -142,35 +146,6 @@ namespace Jhin_As_The_Virtuoso {
 					RCharge.Target = null;
 				}
 			}
-		}
-
-		private static void Orbwalking_BeforeAttack(Orbwalking.BeforeAttackEventArgs args) {
-			#region Q消耗
-			//if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
-			//{
-			//	var t = args.Target;
-			//	if (t?.Type == GameObjectType.obj_AI_Minion)
-			//	{
-			//		var enemy = t as Obj_AI_Base;
-			//		if (Q.CanCast(enemy) && enemy.CountEnemiesInRange(200) > 0)
-			//		{
-			//			args.Process = false;
-			//			Q.Cast(enemy);
-			//		}
-			//	}
-			//}
-			#endregion
-
-			////Q清兵
-			//if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && Config.Item("清兵Q").GetValue<bool>())
-			//{
-			//	var target = Orbwalker.GetTarget() as Obj_AI_Base;
-			//	if (target !=null && Q.CanCast(target) && Q.GetDmg(target)>target.Health && MinionManager.GetMinions(target.Position,200)?.Count>=2)
-			//	{
-			//		args.Process = false;
-			//		Q.Cast(target);
-			//	}
-			//}
 		}
 
 		private static void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target) {
@@ -277,11 +252,11 @@ namespace Jhin_As_The_Virtuoso {
 		}
 
 		private static void AntiGapcloser_OnEnemyGapcloser(ActiveGapcloser gapcloser) {
-			if (Config.Item("防突E").GetValue<bool>())
+			if (Config.Item("防突E").GetValue<bool>() && Config.GetBool("EList" + gapcloser.Sender.NetworkId))
 			{
 				E.Cast(gapcloser.End);
 			}
-			if (Config.Item("防突W").GetValue<bool>() && gapcloser.Sender.HasWBuff())
+			if (Config.Item("防突W").GetValue<bool>() && Config.GetBool("WList" + gapcloser.Sender.NetworkId) && gapcloser.Sender.HasWBuff())
 			{
 				W.CastSpell(gapcloser.Sender);
 			}
@@ -391,9 +366,8 @@ namespace Jhin_As_The_Virtuoso {
 					{
 						Game.ShowPing(PingCategory.AssistMe, enemy, true);
 						Game.ShowPing(PingCategory.AssistMe, enemy, true);
+						Game.ShowPing(PingCategory.AssistMe, enemy, true);
 						PingList[enemy.NetworkId] = Game.ClockTime;
-
-						//DeBug.Debug("击杀信号",$"信号目标 {enemy.ChampionName.ToCN()} 信号时间 {Game.ClockTime}", CNLib.DebugLevel.Info,CNLib.Output.Console,Config.Item("调试"));
 					}
 				}
 				else
@@ -481,6 +455,7 @@ namespace Jhin_As_The_Virtuoso {
 			foreach (var enemy in HeroManager.Enemies.Where(e => e.IsValid && !e.IsDead && e.Distance(Player) < W.Range).OrderByDescending(k => k.Distance(Player)).OrderByDescending(k => k.Health))
 			{
 				if (Config.Item("标记W").GetValue<bool>()
+					&& Config.GetBool("WList"+enemy.NetworkId)
 					&& (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
 					&& enemy.CountAlliesInRange(650) > 0
 					&& enemy.HasWBuff())
@@ -493,7 +468,9 @@ namespace Jhin_As_The_Virtuoso {
 					W.CastSpell(enemy);
 				}
 
-				if (Config.Item("抢人头W").GetValue<bool>() && Player.CountEnemiesInRange(Player.AttackRange+100) == 0 && enemy.Health < OktwCommon.GetIncomingDamage(enemy,W.Delay) + OktwCommon.GetKsDamage(enemy, W)
+				if (Config.Item("抢人头W").GetValue<bool>() 
+					&& Config.GetBool("WList" + enemy.NetworkId)
+					&& Player.CountEnemiesInRange(Player.AttackRange+100) == 0 && enemy.Health < OktwCommon.GetIncomingDamage(enemy,W.Delay) + OktwCommon.GetKsDamage(enemy, W)
 					&& !Q.CanCast(enemy) && !(Orbwalking.CanAttack() && Orbwalking.InAutoAttackRange(enemy)))
 				{
 					W.CastSpell(enemy);
@@ -799,7 +776,7 @@ namespace Jhin_As_The_Virtuoso {
 				var killname = "R击杀名单\n";
 				foreach (var k in KillableList)
 				{
-					killname += (k.Name + "　").ToGBK() + $"({k.ChampionName})\n";
+					killname += (k.Name + "　").ToGBK() + $"({k.ChampionName.ToCN(IsChinese)})\n";
                 }
 
 				var KillTextColor = new ColorBGRA
@@ -816,15 +793,6 @@ namespace Jhin_As_The_Virtuoso {
 					KillTextColor);
 			}
 
-			//var ShowK = Config.Item("击杀目标标识").GetValue<Circle>();
-			//if (ShowK.Active)
-			//{
-			//	foreach (var enemy in KillableList)
-			//	{
-			//		Render.Circle.DrawCircle(enemy.Position, 40, ShowK.Color, 200, true);
-			//		DrawHelper.DrawFillCircle(enemy, ShowK.Color);
-			//	}
-			//}
 		}
 
 		private static void LoadSpell() {
@@ -839,97 +807,116 @@ namespace Jhin_As_The_Virtuoso {
 		}
 
 		private static void LoadMenu() {
-
-			Game.PrintChat("戏命师—烬　".ToHtml(25)+"此刻,大美将致!".ToHtml(Color.PowderBlue,FontStlye.Cite));
-
-			Config = new Menu("戏命师 - 烬", "JhinAsTheVirtuoso", true);
+			
+			Config = new Menu(IsChinese ? "戏命师 - 烬" : "Jhin As The Virtuoso", "JhinAsTheVirtuoso", true);
 			Config.AddToMainMenu();
 
-			//Config.AddItem(new MenuItem("调试", "调试").SetValue(false));
+			Config.AddBool("调试", "调试");
+			Config.AddSeparator();
+			Config.AddLabel("你付了钱，就好好看戏吧").SetFontStyle(FS.Bold, DXColor.PapayaWhip);
 
-			var OMenu = Config.AddSubMenu(new Menu("走砍设置", "走砍设置"));
+			var OMenu = Config.AddMenu("走砍设置", "走砍设置");
 			Orbwalker = new Orbwalking.Orbwalker(OMenu);
 
 			//Q菜单
-			var QMenu = Config.AddSubMenu(new Menu("Q设置","Q设置"));
-			QMenu.AddItem(new MenuItem("消耗Q兵", "可Q死小兵时消耗").SetValue(true));
-			QMenu.AddItem(new MenuItem("消耗Q","一直用Q消耗").SetValue(true));
-			QMenu.AddItem(new MenuItem("清兵Q", "使用Q清兵").SetValue(true));
-			QMenu.AddItem(new MenuItem("补刀Q", "使用Q补刀").SetValue(false));
-			QMenu.AddItem(new MenuItem("抢人头Q", "Q抢人头").SetValue(true));
+			var QMenu = Config.AddMenu("Q设置", "Q设置");
+			QMenu.AddBool("消耗Q兵", "可Q死小兵时消耗",true);
+			QMenu.AddBool("消耗Q", "一直用Q消耗", true);
+			QMenu.AddBool("清兵Q", "使用Q清兵", true);
+			QMenu.AddBool("补刀Q", "使用Q补刀", true);
+			QMenu.AddBool("抢人头Q", "Q抢人头", true);
 
 			//W菜单
-			var WMenu = Config.AddSubMenu(new Menu("W设置", "W设置"));
-			WMenu.AddItem(new MenuItem("硬控W", "自动W硬控敌人").SetValue(true));
-			WMenu.AddItem(new MenuItem("标记W","W有标记的敌人").SetValue(true));
-			WMenu.AddItem(new MenuItem("抢人头W","W抢人头").SetValue(true));
-			WMenu.AddItem(new MenuItem("防突W", "W有标记的突进").SetValue(true));
-			WMenu.AddItem(new MenuItem("位移W", "敌人位移W").SetValue(true));
+			var WMenu = Config.AddMenu("W设置", "W设置");
+			WMenu.AddBool("硬控W", "自动W硬控敌人", true);
+			WMenu.AddBool("标记W", "W有标记的敌人", true);
+			WMenu.AddBool("抢人头W", "W抢人头", true);
+			WMenu.AddBool("防突W", "W有标记的突进", true);
+			WMenu.AddBool("位移W", "敌人位移W", true);
+			var WListMenu = WMenu.AddMenu("W名单", "W名单");
+			foreach (var enemy in HeroManager.Enemies)
+			{
+				//设置中英名
+				WListMenu.AddBool("WList"+enemy.NetworkId,enemy.ChampionName.ToCN(IsChinese),true);
+			}
 
 			//E菜单
-			var EMenu = Config.AddSubMenu(new Menu("E设置", "E设置"));
-			EMenu.AddItem(new MenuItem("连招E", "连招使用E").SetValue(false));
-			EMenu.AddItem(new MenuItem("硬控E", "自动E硬控敌人").SetValue(true));
-			EMenu.AddItem(new MenuItem("防突E", "自动E防突进").SetValue(true));
-			EMenu.AddItem(new MenuItem("打断E", "自动E持续技能敌人").SetValue(true));
-			EMenu.AddItem(new MenuItem("探草E", "敌人进草自动E").SetValue(true));
-			EMenu.AddItem(new MenuItem("位移E", "敌人位移到看不到的地方E").SetValue(true));
-			EMenu.AddItem(new MenuItem("清兵E", "使用E清兵").SetValue(true));
+			var EMenu = Config.AddMenu("E设置", "E设置");
+			EMenu.AddBool("硬控E", "自动E硬控敌人", true);
+			EMenu.AddBool("防突E", "自动E防突进", true);
+			EMenu.AddBool("打断E", "自动E持续技能敌人", true);
+			EMenu.AddBool("探草E", "敌人进草自动E", true);
+			EMenu.AddBool("位移E", "敌人位移到看不到的地方E", true);
+			EMenu.AddBool("清兵E", "使用E清兵", true);
+
+			var EListMenu = EMenu.AddMenu("E名单", "E名单");
+			EListMenu.AddLabel("E名单只适用于防突进/位移");
+			foreach (var enemy in HeroManager.Enemies)
+			{
+				//设置中英名
+				EListMenu.AddBool("EList" + enemy.NetworkId, enemy.ChampionName.ToCN(IsChinese), true);
+			}
 
 			//R菜单
-			var RMenu = Config.AddSubMenu(new Menu("R设置", "R设置"));
-			RMenu.AddItem(new MenuItem("S12", "移动设置")).SetFontStyle(FS.Bold, DXColor.Orange);
-			RMenu.AddItem(new MenuItem("禁止移动", "R时禁止移动和攻击").SetValue(true));
-			RMenu.AddItem(new MenuItem("禁止距离", "当?码敌人靠近解除禁止").SetValue(new Slider(700,0,2000)));
-			RMenu.AddItem(new MenuItem("S13", ""));
+			var RMenu = Config.AddMenu("R设置", "R设置");
+			RMenu.AddLabel("移动设置").SetFontStyle(FS.Bold, DXColor.Orange);
+			RMenu.AddBool("禁止移动", "R时禁止移动和攻击",true);
+			RMenu.AddSlider("禁止距离", "当?码敌人靠近解除禁止", 700,0,(int)R.Range);
+			RMenu.AddSeparator();
 
-			RMenu.AddItem(new MenuItem("S1", "击杀提示设置")).SetFontStyle(FS.Bold, DXColor.Orange);
-			RMenu.AddItem(new MenuItem("击杀文本提示", "文字提示R可击杀目标").SetValue(new Circle(true, Color.Orange)));
-			RMenu.AddItem(new MenuItem("击杀文本X", "文字提示横向位置").SetValue(new Slider(71)));
-			RMenu.AddItem(new MenuItem("击杀文本Y", "文字提示纵向位置").SetValue(new Slider(86)));
-			RMenu.AddItem(new MenuItem("击杀信号提示", "信号提示R可击杀目标(本地)").SetValue(true));
-			RMenu.AddItem(new MenuItem("击杀目标标识", "圆圈标记R可击杀目标").SetValue(new Circle(true, Color.Red)));
-			RMenu.AddItem(new MenuItem("S2", ""));
+			RMenu.AddLabel("击杀提示设置").SetFontStyle(FS.Bold, DXColor.Orange);
+			RMenu.AddCircle("击杀文本提示", "文字提示R可击杀目标",true, Color.Orange);
+			RMenu.AddSlider("击杀文本X", "文字提示横向位置",71);
+			RMenu.AddSlider("击杀文本Y", "文字提示纵向位置", 86);
+			RMenu.AddBool("击杀信号提示", "信号提示R可击杀目标(本地)",true);
+			RMenu.AddSeparator();
 
-			RMenu.AddItem(new MenuItem("S3", "半手动R设置(自动R)")).SetFontStyle(FS.Bold, DXColor.Orange);
-			RMenu.AddItem(new MenuItem("半手动R自动", "半手动R(自动R)").SetValue(new KeyBind('R',KeyBindType.Press)));
-			RMenu.AddItem(new MenuItem("第一次延迟", "第一次R后延迟(毫秒)").SetValue(new Slider(0, 0, 1000)));
-			RMenu.AddItem(new MenuItem("第二次延迟", "第二次R后延迟(毫秒)").SetValue(new Slider(0, 0, 1000)));
-			RMenu.AddItem(new MenuItem("第三次延迟", "第三次R后延迟(毫秒)").SetValue(new Slider(0, 0, 1000)));
-			RMenu.AddItem(new MenuItem("S4", ""));
+			RMenu.AddLabel("半手动R设置(自动R)").SetFontStyle(FS.Bold, DXColor.Orange);
+			RMenu.AddKeyBind("半手动R自动", "半手动R(自动R)",'R',KeyBindType.Press);
+			RMenu.AddSlider("第一次延迟", "第一次R后延迟(毫秒)",0,0,1000);
+			RMenu.AddSlider("第二次延迟", "第二次R后延迟(毫秒)", 0, 0, 1000);
+			RMenu.AddSlider("第三次延迟", "第三次R后延迟(毫秒)", 0, 0, 1000);
+			RMenu.AddSeparator();
 
-			//RMenu.AddItem(new MenuItem("S5", "半手动R设置(点射)")).SetFontStyle(FS.Bold, DXColor.Orange);
-			//RMenu.AddItem(new MenuItem("半手动R点射", "半手动R(点射)").SetValue(new KeyBind('T', KeyBindType.Press)));
-			//RMenu.AddItem(new MenuItem("S6", ""));
-
-			RMenu.AddItem(new MenuItem("R放眼","R时无视野放蓝眼").SetValue(true));
+			RMenu.AddBool("R放眼", "R时无视野放蓝眼",true);
 
 			//其它菜单
-			var MMenu = Config.AddSubMenu(new Menu("其它设置", "其它设置"));
-			MMenu.AddItem(new MenuItem("S10", "自动加点设置")).SetFontStyle(FS.Bold, DXColor.Orange);
-			MMenu.AddItem(new MenuItem("自动点大", "只自动学大").SetValue(true));
-			MMenu.AddItem(new MenuItem("自动加点", "自动加点").SetValue(false));
-			MMenu.AddItem(new MenuItem("加点等级", "从几级开始加点").SetValue(new Slider(2,1,6)));
-			MMenu.AddItem(new MenuItem("加点延迟", "加点延迟").SetValue(new Slider(700, 0, 2000)));
-			MMenu.AddItem(new MenuItem("加点方案", "加点方案").SetValue(
-				new StringList(new[] {"主Q副W","主Q副E","主W副Q","主W副E","主E副Q","主E副W"})));
+			var MMenu = Config.AddMenu("其它设置", "其它设置");
+			MMenu.AddLabel("自动加点设置").SetFontStyle(FS.Bold, DXColor.Orange);
+			MMenu.AddBool("自动点大", "只自动学大");
+			MMenu.AddBool("自动加点", "自动加点",true);
+			MMenu.AddSlider("加点等级", "从几级开始加点", 2, 1, 6);
+			MMenu.AddSlider("加点延迟", "加点延迟", 700, 0, 2000);
+			MMenu.AddStringList("加点方案", "加点方案", new[] { "主Q副W", "主Q副E", "主W副Q", "主W副E", "主E副Q", "主E副W" });
 
-			MMenu.AddItem(new MenuItem("S11", ""));
-			MMenu.AddItem(new MenuItem("买蓝眼","9级时自动买蓝眼").SetValue(true));
+			MMenu.AddSeparator();
+			MMenu.AddBool("买蓝眼", "9级时自动买蓝眼",true);
 
 			//显示菜单
-			var DMenu = Config.AddSubMenu(new Menu("显示设置", "显示设置"));
-			DMenu.AddItem(new MenuItem("S7", "范围显示")).SetFontStyle(FS.Bold,DXColor.Orange);
-			DMenu.AddItem(new MenuItem("W范围", "显示W范围").SetValue(new Circle(true, Color.Blue, E.Range)));
-			DMenu.AddItem(new MenuItem("小地图W范围", "小地图显示W范围").SetValue(false));
-			DMenu.AddItem(new MenuItem("E范围", "显示E范围").SetValue(new Circle(true, Color.Yellow, E.Range)));
-			DMenu.AddItem(new MenuItem("R范围", "显示R范围").SetValue(new Circle(true, Color.YellowGreen, R.Range)));
-			DMenu.AddItem(new MenuItem("小地图R范围", "小地图显示R范围").SetValue(true));
-			DMenu.AddItem(new MenuItem("S8", ""));
+			var DMenu = Config.AddMenu("显示设置", "显示设置");
+			DMenu.AddLabel("范围显示").SetFontStyle(FS.Bold, DXColor.Orange);
+			DMenu.AddCircle("W范围", "显示W范围", true, Color.Blue);
+			DMenu.AddBool("小地图W范围", "小地图显示W范围",true);
+			DMenu.AddCircle("E范围", "显示E范围", true, Color.Yellow);
+			DMenu.AddCircle("R范围", "显示R范围", true, Color.YellowGreen);
+			DMenu.AddBool("小地图R范围", "小地图显示R范围", true);
+			DMenu.AddSeparator();
 
-			DMenu.AddItem(new MenuItem("S9", "伤害提示")).SetFontStyle(FS.Bold, DXColor.Orange);
-			DMenu.AddItem(new MenuItem("大招伤害", "显示四次大招后伤害").SetValue(new Circle(true, Color.Red)));
-			//DMenu.AddItem(new MenuItem("连招伤害", "显示连招伤害").SetValue(new Circle(true, Color.Green)));
+			DMenu.AddLabel("伤害提示").SetFontStyle(FS.Bold, DXColor.Orange);
+			DMenu.AddCircle("大招伤害", "显示四次大招后伤害", true, Color.Red);
+
+			
+			if (string.IsNullOrEmpty(LeagueSharp.Common.Config.SelectedLanguage))
+			{
+				var LMenu = Config.AddMenu("语言设置", "Language Settings");
+				LMenu.AddLabel("Press F5 reload assebmly to change language").SetFontStyle(FS.Bold, DXColor.Orange);
+				LMenu.AddStringList("选择语言", "Select language", new[] { "English", "中文" },IsChinese?1:0).ValueChanged += (s,e) => {
+					//storage.Set("language", e.GetNewValue<StringList>().SelectedIndex == 0 ? "English" : "Chinese");
+					//storage.Save();
+					storage.SaveFile(e.GetNewValue<StringList>().SelectedIndex == 0 ? "English" : "Chinese");
+				} ;
+			}
 		}
+
 	}
 }
